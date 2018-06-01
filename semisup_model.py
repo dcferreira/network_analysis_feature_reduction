@@ -1,37 +1,43 @@
 from keras.layers import Input, Dense, LeakyReLU
 from keras import regularizers
-from keras.Model import Model
+from keras.models import Model
 from keras import optimizers
 from keras.callbacks import ReduceLROnPlateau
-from data import x_train, x_val, cats_val
 
 
 class SemisupNN(object):
-    def __init__(self, size, categories=True):
+    def __init__(self, data, size, categories=True):
         """
-        categories == True means use attack categories, categories == False means use just attack vs not attack
+
+        Args:
+            data (data.Data):
+            size (int):
+            categories (bool): True means use attack categories, False means use just binary (attack or not attack).
         """
+        self.data = data
         self.categories = categories
 
-        self.input_layer = Input(shape=(x_train.shape[1],))
+        self.input_layer = Input(shape=(self.data.x_train.shape[1],))
 
         # encoder
-        self.encoder = self.get_enc_layer(size, (x_train.shape[1],))
-        self.encoded = self.encoder(encoded)
+        self.encoder = self.get_enc_layer(size, (self.data.x_train.shape[1],))
+        self.encoded = self.encoder(self.input_layer)
 
         # decoder
         if categories:
             self.decoded = Dense(10, activation='sigmoid', name='label_output')(self.encoded)
         else:
             self.decoded = Dense(1, activation='sigmoid', name='label_output')(self.encoded)
-        self.reconstruct = Dense(x_train.shape[1], activation='sigmoid', name='reconstruct_output')(self.encoded)
+        self.reconstruct = Dense(self.data.x_train.shape[1], activation='sigmoid', name='reconstruct_output')(
+            self.encoded)
 
+    @staticmethod
     def get_enc_layer(dim, inp_dim):
         inp_layer = Input(shape=inp_dim)
-        encodedn = Dense(dim, activation=None, kernel_initializer='glorot_normal',
-                         kernel_regularizer=regularizers.l2(0.1),
-                         bias_regularizer=regularizers.l2(0.1)
-                   )(inp_layer)
+        encoded = Dense(dim, activation=None, kernel_initializer='glorot_normal',
+                        kernel_regularizer=regularizers.l2(0.1),
+                        bias_regularizer=regularizers.l2(0.1)
+                        )(inp_layer)
         encoded = LeakyReLU(alpha=0.2)(encoded)
         model = Model(inp_layer, encoded)
         return model
@@ -49,17 +55,16 @@ class SemisupNN(object):
                                       cooldown=5)
 
         if self.categories:
-            labels = cats_train
-            labels_val = cats_val
+            labels = self.data.cats_train
+            labels_val = self.data.cats_val
         else:
-            labels = y_train
-            labels_val = y_val
-        model.fit(x_train, {'label_output': labels_train, 'reconstruct_output': x_train},
+            labels = self.data.y_train
+            labels_val = self.data.y_val
+        model.fit(self.data.x_train, {'label_output': labels, 'reconstruct_output': self.data.x_train},
                   epochs=500, batch_size=1000, shuffle=False,
-                  validation_data=(x_val, [labels_val, x_val])
-
+                  validation_data=(self.data.x_val, [labels_val, self.data.x_val]),
+                  callbacks=[reduce_lr])
 
     def get_embeddings(self, data):
         enc = Model(self.input_layer, self.encoded)
         return enc.predict(data)
-

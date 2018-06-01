@@ -2,7 +2,6 @@ import random
 import pandas as pd
 import numpy as np
 import tensorflow as tf
-from sklearn.preprocessing import normalize
 from sklearn.model_selection import train_test_split
 
 
@@ -10,6 +9,40 @@ random.seed(1337)
 np.random.seed(1337)
 tf.set_random_seed(1337)
 
+
+class Data(object):
+    def __init__(self, all, training, testing):
+        big_df = read_df(all)
+        unsup = big_df
+        train = read_df(training, big_df)
+        test = read_df(testing, big_df)
+
+        # split train/dev/test
+        unsup_mat = unsup.as_matrix()
+        x_train, x_val, y_train, y_val, cats_train, cats_val = \
+            train_test_split(train.as_matrix()[:,:-11], # feats
+                             train.as_matrix()[:,-1], # labels
+                             train.as_matrix()[:,-11:-1], # cats
+                             test_size=0.2, random_state=1337)
+        x_test, y_test, cats_test = (test.as_matrix()[:,:-11],
+                                     test.as_matrix()[:,-1],
+                                     test.as_matrix()[:,-11:-1])
+
+        del big_df
+        del unsup
+        del train
+        del test
+
+        # normalize
+        maximum = unsup_mat[:,:-11].max(axis=0)
+        minimum = unsup_mat[:,:-11].min(axis=0)
+
+        unsup_mat[:,:-11] = (unsup_mat[:,:-11] - minimum) / (maximum - minimum)
+        self.x_train = (x_train - minimum) / (maximum - minimum)
+        self.x_val = (x_val - minimum) / (maximum - minimum)
+        self.x_test = (x_test - minimum) / (maximum - minimum)
+        self.y_train, self.y_test, self.y_val = y_train, y_test, y_val
+        self.cats_train, self.cats_test, self.cats_val = cats_train, cats_test, cats_val
 
 def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
     categorical_feats = ['proto', 'state', 'service', 'is_sm_ips_ports',
@@ -49,8 +82,8 @@ def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
     elif num_only:
         new_df = df.select_dtypes(include=np.number)
         new_df['label'] = df.label
-        new_df = df.label
-    
+        df = new_df
+
     if onehot:
         ddf = pd.get_dummies(df)
         if big_df is not None:
@@ -60,34 +93,3 @@ def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
         ddf = df
     return ddf.fillna(value=0)
 
-big_df = read_df('UNSW-NB15_all.csv')
-unsup = big_df
-train = read_df('UNSW_NB15_training-set.csv', big_df)
-test = read_df('UNSW_NB15_testing-set.csv', big_df)
-
-
-
-# split train/dev/test
-unsup_mat = unsup.as_matrix()
-x_train, x_val, y_train, y_val, cats_train, cats_val = \
-                            train_test_split(train.as_matrix()[:,:-11], # feats
-                            train.as_matrix()[:,-1], # labels
-                            train.as_matrix()[:,-11:-1], # cats
-                            test_size=0.2, random_state=1337)
-x_test, y_test, cats_test = (test.as_matrix()[:,:-11], 
-                             test.as_matrix()[:,-1],
-                             test.as_matrix()[:,-11:-1])
-
-
-# normalize
-maximum = unsup_mat[:,:-11].max(axis=0)
-minimum = unsup_mat[:,:-11].min(axis=0)
-
-unsup_mat[:,:-11] = (unsup_mat[:,:-11] - minimum) / (maximum - minimum)
-x_train = (x_train - minimum) / (maximum - minimum)
-x_val = (x_val - minimum) / (maximum - minimum)
-x_test = (x_test - minimum) / (maximum - minimum)
-del big_df
-del unsup
-del train
-del test
