@@ -42,7 +42,7 @@ class SemisupNN(object):
         model = Model(inp_layer, encoded)
         return model
 
-    def train(self):
+    def train(self, **kwargs):
         model = Model(self.input_layer, outputs=[self.decoded, self.reconstruct])
         adam = optimizers.Adam(lr=1e-3, decay=1e-4)
         model.compile(optimizer=adam,
@@ -60,10 +60,18 @@ class SemisupNN(object):
         else:
             labels = self.data.y_train
             labels_val = self.data.y_val
-        model.fit(self.data.x_train, {'label_output': labels, 'reconstruct_output': self.data.x_train},
-                  epochs=500, batch_size=1000, shuffle=False,
-                  validation_data=(self.data.x_val, [labels_val, self.data.x_val]),
-                  callbacks=[reduce_lr])
+
+        default_kwargs = {
+            'x': self.data.x_train,
+            'y': {'label_output': labels, 'reconstruct_output': self.data.x_train},
+            'epochs': 500,
+            'batch_size': 1000,
+            'shuffle': False,
+            'validation_data': (self.data.x_val, [labels_val, self.data.x_val]),
+            'callbacks': [reduce_lr]
+        }
+        default_kwargs.update(**kwargs)
+        model.fit(**default_kwargs)
 
     def get_embeddings(self, data):
         enc = Model(self.input_layer, self.encoded)
