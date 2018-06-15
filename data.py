@@ -28,11 +28,6 @@ class Data(object):
                                      test.as_matrix()[:,-1],
                                      test.as_matrix()[:,-11:-1])
 
-        del big_df
-        del unsup
-        del train
-        del test
-
         # normalize
         maximum = unsup_mat[:,:-11].max(axis=0)
         minimum = unsup_mat[:,:-11].min(axis=0)
@@ -42,7 +37,13 @@ class Data(object):
         self.x_val = (x_val - minimum) / (maximum - minimum)
         self.x_test = (x_test - minimum) / (maximum - minimum)
         self.y_train, self.y_test, self.y_val = y_train, y_test, y_val
+        self.cats_nr_train, self.cats_nr_test, self.cats_nr_val = (
+            [np.argmax(x) for x in cats_train],
+            [np.argmax(x) for x in cats_test],
+            [np.argmax(x) for x in cats_val]
+        )
         self.cats_train, self.cats_test, self.cats_val = cats_train, cats_test, cats_val
+
 
 def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
     categorical_feats = ['proto', 'state', 'service', 'is_sm_ips_ports',
