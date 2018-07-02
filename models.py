@@ -1,9 +1,10 @@
+import numpy as np
 from keras.layers import Input, Dense, LeakyReLU
 from keras import regularizers
 from keras.models import Model
 from keras import optimizers
 from keras.callbacks import ReduceLROnPlateau
-from sklearn import decomposition
+from sklearn import decomposition, manifold
 
 
 class BaseModel(object):
@@ -133,6 +134,45 @@ class UnsupNN(SemisupNN):
         return model.fit(**default_kwargs)
 
 
+class SupNN(SemisupNN):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        del self.reconstruct
+
+    def train(self, **kwargs):
+        model = Model(self.input_layer, self.label_decode)
+        adam = optimizers.Adam(lr=self.lr, decay=self.lr_decay)
+        if self.categories:
+            label_loss = 'categorical_crossentropy'
+        else:
+            label_loss = 'binary_crossentropy'
+        model.compile(optimizer=adam,
+                      loss=label_loss)
+
+        reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.5,
+                                      patience=5, verbose=1, min_lr=1e-7,
+                                      cooldown=5)
+
+        if self.categories:
+            labels = self.data.cats_train
+            labels_val = self.data.cats_val
+        else:
+            labels = self.data.y_train
+            labels_val = self.data.y_val
+
+        default_kwargs = {
+            'x': self.data.x_train,
+            'y': labels,
+            'epochs': 1500,
+            'batch_size': 1000,
+            'shuffle': False,
+            'validation_data': (self.data.x_val, labels_val),
+            'callbacks': [reduce_lr],
+        }
+        default_kwargs.update(**kwargs)
+        return model.fit(**default_kwargs)
+
+
 class PCA(BaseModel):
     def __init__(self, data, size):
         super().__init__(data=data, size=size)
@@ -143,3 +183,25 @@ class PCA(BaseModel):
 
     def get_embeddings(self, data):
         return self.pca.transform(data)[:,:self.size]
+
+
+class TSNE(BaseModel):
+    def __init__(self, data, size, *args, **kwargs):
+        super().__init__(data=data, size=size)
+        self.tsne = manifold.TSNE(verbose=2, *args, **kwargs)
+        self.all_data = np.concatenate((self.data.x_train, self.data.x_test))
+        self.all_data_transformed = None
+
+    def train(self):
+        self.all_data_transformed = self.tsne.fit_transform(self.all_data)
+
+    def get_embeddings(self, data):
+        """
+        Args:
+            data: ignored, kept for consistency with the rest of the API
+
+        Returns:
+            test data transformed by t-SNE
+        """
+        return self.all_data_transformed[self.data.x_train.shape[0]:]  # get only test data
+

@@ -10,6 +10,12 @@ classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
                'Logistic Regression': linear_model.LogisticRegression}
 
 
+def is_interactive():
+    import sys
+    return 'ipykernel' in sys.modules
+
+
+
 class ClassifierMetrics(object):
     def __init__(self, data, model):
         """
@@ -66,9 +72,15 @@ class ClassifierMetrics(object):
 
         if display_scores:
             print('binary class:')
-            display(HTML(tabulate(out, headers='keys', tablefmt='html')))
+            if is_interactive():
+                display(HTML(tabulate(out, headers='keys', tablefmt='html')))
+            else:
+                print(tabulate(out, headers='keys'))
             print('with attack categories:')
-            display(HTML(tabulate(out_cat, headers='keys', tablefmt='html')))
+            if is_interactive():
+                display(HTML(tabulate(out_cat, headers='keys', tablefmt='html')))
+            else:
+                print(tabulate(out_cat, headers='keys'))
         else:
             return out, out_cat
 
@@ -135,9 +147,15 @@ class Aggregator(object):
                     m_out['reduced'].append(m['reduced'][k])
 
                 print('binary class:')
-                display(HTML(tabulate(b_out, headers='keys', tablefmt='html')))
+                if is_interactive():
+                    display(HTML(tabulate(b_out, headers='keys', tablefmt='html')))
+                else:
+                    print(tabulate(b_out, headers='keys'))
                 print('with attack categories:')
-                display(HTML(tabulate(m_out, headers='keys', tablefmt='html')))
+                if is_interactive():
+                    display(HTML(tabulate(m_out, headers='keys', tablefmt='html')))
+                else:
+                    print(tabulate(m_out, headers='keys'))
 
 
     def mean(self, display_scores=True):
@@ -165,15 +183,15 @@ def get_metrics(y_true, y_pred):
 
 def get_metrics_cats(y_true, y_pred):
     out = {'accuracy': sklearn.metrics.accuracy_score(y_true, y_pred)}
-#     out.update({'f1_%d' % i : v for i, v in enumerate(
-#         sklearn.metrics.f1_score(y_true, y_pred, average=None)
-#     )})
-#     out.update({'precision_%d' % i : v for i, v in enumerate(
-#         sklearn.metrics.precision_score(y_true, y_pred, average=None)
-#     )})
-#     out.update({'recall_%d' % i : v for i, v in enumerate(
-#         sklearn.metrics.recall_score(y_true, y_pred, average=None)
-#     )})
+    out.update({'f1_%d' % i : v for i, v in enumerate(
+        sklearn.metrics.f1_score(y_true, y_pred, average=None)
+    )})
+    out.update({'precision_%d' % i : v for i, v in enumerate(
+        sklearn.metrics.precision_score(y_true, y_pred, average=None)
+    )})
+    out.update({'recall_%d' % i : v for i, v in enumerate(
+        sklearn.metrics.recall_score(y_true, y_pred, average=None)
+    )})
     out['f1_macro'] = sklearn.metrics.f1_score(y_true, y_pred, average='macro')
     out['f1_micro'] = sklearn.metrics.f1_score(y_true, y_pred, average='micro')
     out['precision_macro'] = sklearn.metrics.precision_score(y_true, y_pred, average='macro')
