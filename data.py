@@ -16,6 +16,7 @@ class Data(object):
         unsup = big_df
         train = read_df(training, big_df)
         test = read_df(testing, big_df)
+        self.columns = test.columns
 
         # split train/dev/test
         unsup_mat = unsup.as_matrix()
