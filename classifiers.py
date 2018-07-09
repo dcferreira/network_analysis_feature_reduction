@@ -102,6 +102,41 @@ class Aggregator(object):
             self.scores[cname] = [met.test_classifier(c, display_scores=False) for met in self.metrics]
         return self.scores
 
+    def get_own_metrics(self, data, categories=True):
+        """
+        Used for the neural networks that include a label output.
+
+        Args:
+            data:
+            categories: whether the predict function gives categories or binary labels (True when categories).
+
+        Returns:
+
+        """
+        if categories:
+            def aux_f(labels_scores):  # convert scores to just 0s and 1s
+                labels = np.argmax(labels_scores, axis=1)
+                new_labels = np.zeros(labels_scores.shape)
+                new_labels[np.arange(len(labels)), labels] = 1
+                return new_labels
+            metrics = [get_metrics_cats(data.cats_test,
+                                        aux_f(mod.predict_labels(data.x_test))) for mod in self.models]
+        else:
+            metrics = [get_metrics(data.y_test, mod.predict_labels(data.x_test)) for mod in self.models]
+        self.scores['own'] = []
+        for met in metrics:
+            new_table = {'metric': [], 'reduced': [], 'original': []}
+            for k in sorted(met):  # iterate through keys (metric names)
+                new_table['metric'].append(k)
+                new_table['original'].append(-1)  # dummy value
+                new_table['reduced'].append(met[k])
+            if categories:
+                self.scores['own'].append(({'metric': [], 'reduced': [], 'original': []}, new_table))
+            else:
+                self.scores['own'].append((new_table, {'metric': [], 'reduced': [], 'original': []}))
+
+        return self.scores
+
     def apply_op(self, op, display_scores=True):
         out = {}
         for cname, metrics in self.scores.items():
