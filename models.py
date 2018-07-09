@@ -47,7 +47,9 @@ class SemisupNN(BaseModel):
 
         # decoder
         if categories:
-            self.label_decode = Dense(10, activation='sigmoid', name='label_output')(self.encoded)
+            self.label_decode = Dense(10, activation='sigmoid', name='label_output',
+                                      kernel_regularizer=regularizers.l2(self.dec_regularizer_weight),
+                                      bias_regularizer=regularizers.l2(self.dec_regularizer_weight))(self.encoded)
         else:
             self.label_decode = Dense(1, activation='sigmoid', name='label_output',
                                       kernel_regularizer=regularizers.l2(self.dec_regularizer_weight),
