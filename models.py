@@ -106,6 +106,10 @@ class SemisupNN(BaseModel):
         enc = Model(self.input_layer, self.encoded)
         return enc.predict(data)
 
+    def predict_labels(self, data):
+        labels = Model(self.input_layer, self.label_decode)
+        return labels.predict(data)
+
 
 class UnsupNN(SemisupNN):
     def __init__(self, *args, **kwargs):
