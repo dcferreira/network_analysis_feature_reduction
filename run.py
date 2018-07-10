@@ -117,8 +117,8 @@ parser_pca.set_defaults(func=pca)
 
 # SemiSupNN arguments_parent
 parent_parser = argparse.ArgumentParser(add_help=False, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parent_parser.add_argument("--reconstruct_loss", type=str, help='One of "binary-crossentropy", "mse".',
-                           default='binary-crossentropy')
+parent_parser.add_argument("--reconstruct_loss", type=str, help='One of "binary_crossentropy", "mse".',
+                           default='binary_crossentropy')
 parent_parser.add_argument('--reconstruct_weight', type=float, default=0.1,
                            help='Weight of reconstruction loss. Label loss is always 1.0')
 parent_parser.add_argument('--enc_regularizer_weight', type=float, default=0.1,
