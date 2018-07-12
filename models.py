@@ -216,3 +216,29 @@ class TSNE(BaseModel):
             return self.all_data_transformed[:self.data.x_train.shape[0]]  # get only train data
         else:
             return self.all_data_transformed[self.data.x_train.shape[0]:]  # get only test data
+
+
+class MDS(BaseModel):
+    def __init__(self, data, size, *args, **kwargs):
+        super().__init__(data=data, size=size)
+        self.mds = manifold.MDS(*args, **kwargs)
+        self.all_data = np.concatenate((self.data.x_train, self.data.x_test))
+        self.all_data_transformed = None
+
+    def train(self):
+        self.all_data_transformed = self.mds.fit_transform(self.all_data)
+        return self.mds
+
+    def get_embeddings(self, data):
+        """
+        Args:
+            data: assumed one of train data or test data
+
+        Returns:
+            corresponding data to input, transformed by t-SNE
+        """
+        # check if input is train or test data... assumes train is bigger than test
+        if len(data) > len(self.all_data_transformed) / 2:
+            return self.all_data_transformed[:self.data.x_train.shape[0]]  # get only train data
+        else:
+            return self.all_data_transformed[self.data.x_train.shape[0]:]  # get only test data

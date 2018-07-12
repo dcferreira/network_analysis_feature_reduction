@@ -122,7 +122,7 @@ class Aggregator(object):
             metrics = [get_metrics_cats(data.cats_test,
                                         aux_f(mod.predict_labels(data.x_test))) for mod in self.models]
         else:
-            metrics = [get_metrics(data.y_test, mod.predict_labels(data.x_test)) for mod in self.models]
+            metrics = [get_metrics(data.y_test, np.rint(mod.predict_labels(data.x_test))) for mod in self.models]
         self.scores['own'] = []
         for met in metrics:
             new_table = {'metric': [], 'reduced': [], 'original': []}

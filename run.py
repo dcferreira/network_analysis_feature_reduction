@@ -99,6 +99,16 @@ def tsne(args):
     aggregated(mod, data)
 
 
+def mds(args):
+    data = get_data(args)
+    mod = Aggregator(MDS, args.number, data, args.size, n_components=args.size,
+                     metric=args.metric, n_init=args.n_init, max_iter=args.max_iter,
+                     verbose=args.verbose, eps=args.eps, n_jobs=args.n_jobs,
+                     random_state=args.random_state, dissimilarity=args.dissimilarity
+                     )
+    aggregated(mod, data)
+
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 subparsers = parser.add_subparsers(dest='method')
@@ -168,6 +178,19 @@ parser_tsne.add_argument('--random_state', type=int, default=None)
 parser_tsne.add_argument('--method', type=str, default='barnes_hut')
 parser_tsne.add_argument('--angle', type=float, default=0.5)
 parser_tsne.set_defaults(func=tsne)
+
+
+# multidimensional scaling (mds)
+parser_mds = subparsers.add_parser('mds', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_mds.add_argument('--metric', type=bool, default=True)
+parser_mds.add_argument('--n_init', type=int, default=4)
+parser_mds.add_argument('--max_iter', type=int, default=300)
+parser_mds.add_argument('--verbose', type=int, default=0)
+parser_mds.add_argument('--eps', type=float, default=1e-3)
+parser_mds.add_argument('--n_jobs', type=int, default=1)
+parser_mds.add_argument('--random_state', type=int, default=None)
+parser_mds.add_argument('--dissimilarity', type=str, default='euclidean')
+parser_mds.set_defaults(func=mds)
 
 
 if __name__ == '__main__':
