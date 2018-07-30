@@ -1,3 +1,4 @@
+import os.path
 from IPython.core.display import display, HTML
 import numpy as np
 import sklearn.metrics
@@ -91,6 +92,21 @@ class Aggregator(object):
         self.metrics = None
         self.scores = None
         self.histories = None
+
+    def save_models(self, path):
+        """
+        Uses the ``save_model`` method of the models, and saves the multiple models into a directory.
+        Inside the given directory (``path``), multiple files or directories will be creating, named with numbers from
+        0 to the number of models in this aggregator.
+
+        Args:
+            path:
+
+        Returns:
+
+        """
+        for i, model in enumerate(self.models):
+            model.save_model(os.path.join(path, str(i)))
 
     def train(self, **kwargs):
         self.histories = [model.train(**kwargs) for model in self.models]
