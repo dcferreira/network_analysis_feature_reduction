@@ -1,7 +1,8 @@
+import os, errno
 import numpy as np
 from keras.layers import Input, Dense, LeakyReLU
 from keras import regularizers
-from keras.models import Model
+from keras.models import Model, load_model
 from keras import optimizers
 from keras.callbacks import ReduceLROnPlateau
 from sklearn import decomposition, manifold
@@ -16,6 +17,12 @@ class BaseModel(object):
         raise NotImplementedError
 
     def get_embeddings(self, data):
+        raise NotImplementedError
+
+    def save_model(self, path):
+        raise NotImplementedError
+
+    def load_model(self, path):
         raise NotImplementedError
 
 
@@ -57,6 +64,39 @@ class SemisupNN(BaseModel):
         self.reconstruct = Dense(self.data.x_train.shape[1], activation='sigmoid', name='reconstruct_output')(
             self.encoded)
 
+        self.trainable_model, self.embeddings_model, self.labels_model, self.model_paths = self.make_models()
+
+    def make_models(self):
+        trainable_model = Model(self.input_layer, outputs=[self.label_decode, self.reconstruct])
+        embeddings_model = Model(self.input_layer, self.encoded)
+        labels_model = Model(self.input_layer, self.label_decode)
+        model_paths = {
+            'trainable_model': 'trainable_model.h5',
+            'embeddings_model': 'embeddings_model.h5',
+            'labels_model': 'labels_model.h5'
+        }
+
+        return trainable_model, embeddings_model, labels_model, model_paths
+
+    def save_model(self, path):
+        try:
+            os.makedirs(path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise ValueError('Path for saving model already exists!')
+        for model in self.model_paths:
+            fname = self.model_paths[model]
+            if fname is not None:
+                self.__dict__[model].save(os.path.join(path, fname))
+
+    def load_model(self, path):
+        for model in self.model_paths:
+            fname = self.model_paths[model]
+            if fname is None:
+                self.__dict__[model] = None
+            else:
+                self.__dict__[model] = load_model(os.path.join(path, fname))
+
     def get_enc_layer(self, dim, inp_dim):
         inp_layer = Input(shape=inp_dim)
         encoded = Dense(dim, activation=None, kernel_initializer='glorot_normal',
@@ -68,7 +108,7 @@ class SemisupNN(BaseModel):
         return model
 
     def train(self, **kwargs):
-        model = Model(self.input_layer, outputs=[self.label_decode, self.reconstruct])
+        model = self.trainable_model
         adam = optimizers.Adam(lr=self.lr, decay=self.lr_decay)
         if self.categories:
             label_loss = 'categorical_crossentropy'
@@ -103,11 +143,11 @@ class SemisupNN(BaseModel):
         return model.fit(**default_kwargs)
 
     def get_embeddings(self, data):
-        enc = Model(self.input_layer, self.encoded)
+        enc = self.embeddings_model
         return enc.predict(data)
 
     def predict_labels(self, data):
-        labels = Model(self.input_layer, self.label_decode)
+        labels = self.labels_model
         return labels.predict(data)
 
 
@@ -117,8 +157,20 @@ class UnsupNN(SemisupNN):
         del self.label_decode
         del self.categories
 
+    def make_models(self):
+        trainable_model = Model(self.input_layer, self.reconstruct)
+        embeddings_model = Model(self.input_layer, self.encoded)
+        labels_model = None
+        model_paths = {
+            'trainable_model': 'trainable_model.h5',
+            'embeddings_model': 'embeddings_model.h5',
+            'labels_model': None
+        }
+
+        return trainable_model, embeddings_model, labels_model, model_paths
+
     def train(self, **kwargs):
-        model = Model(self.input_layer, self.reconstruct)
+        model = self.trainable_model
         adam = optimizers.Adam(lr=self.lr, decay=self.lr_decay)
         model.compile(optimizer=adam,
                       loss=self.reconstruct_loss)
@@ -145,8 +197,20 @@ class SupNN(SemisupNN):
         super().__init__(*args, **kwargs)
         del self.reconstruct
 
+    def make_models(self):
+        trainable_model = Model(self.input_layer, self.label_decode)
+        embeddings_model = None
+        labels_model = Model(self.input_layer, self.label_decode)
+        model_paths = {
+            'trainable_model': 'trainable_model.h5',
+            'embeddings_model': None,
+            'labels_model': 'labels_model.h5'
+        }
+
+        return trainable_model, embeddings_model, labels_model, model_paths
+
     def train(self, **kwargs):
-        model = Model(self.input_layer, self.label_decode)
+        model = self.trainable_model
         adam = optimizers.Adam(lr=self.lr, decay=self.lr_decay)
         if self.categories:
             label_loss = 'categorical_crossentropy'
