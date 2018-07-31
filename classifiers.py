@@ -2,19 +2,19 @@ import os.path
 from IPython.core.display import display, HTML
 import numpy as np
 import sklearn.metrics
-from sklearn import svm, linear_model, tree
+from sklearn import svm, linear_model, tree, cluster
 from tabulate import tabulate
 
 
 classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
                'SVM': svm.LinearSVC,
                'Logistic Regression': linear_model.LogisticRegression}
+clusterers = {'K-Means': cluster.KMeans}
 
 
 def is_interactive():
     import sys
     return 'ipykernel' in sys.modules
-
 
 
 class ClassifierMetrics(object):
@@ -86,10 +86,46 @@ class ClassifierMetrics(object):
             return out, out_cat
 
 
+class ClustererMetrics(ClassifierMetrics):
+    def test_classifier(self, classifier, display_scores=True):
+        out = {'metric': [], 'original': [], 'reduced': []}
+        out_cat = {'metric': [], 'original': [], 'reduced': []}  # never filled in
+
+        # original
+        clf = classifier().fit(self.x_train, self.y_train)
+        dt_preds_u = clf.predict(self.x_test)
+        orig_scores = get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
+
+        # reduced
+        clf_reduced = classifier().fit(self.x_enc_train, self.y_train)
+        dtr_preds_u = clf_reduced.predict(self.x_enc_test)
+        reduced_scores = get_clustering_metrics(self.x_enc_test, self.y_test, dtr_preds_u)
+
+        for k in sorted(orig_scores):
+            out['metric'].append(k)
+            out['original'].append(orig_scores[k])
+            out['reduced'].append(reduced_scores[k])
+
+
+        if display_scores:
+            print('binary class:')
+            if is_interactive():
+                display(HTML(tabulate(out, headers='keys', tablefmt='html')))
+            else:
+                print(tabulate(out, headers='keys'))
+            print('with attack categories:')
+            if is_interactive():
+                display(HTML(tabulate(out_cat, headers='keys', tablefmt='html')))
+            else:
+                print(tabulate(out_cat, headers='keys'))
+        else:
+            return out, out_cat
+
+
 class Aggregator(object):
     def __init__(self, model_class, number, *args, **kwargs):
         self.models = [model_class(*args, **kwargs) for _ in range(number)]
-        self.metrics = None
+        self.metrics_classifiers = None
         self.scores = None
         self.histories = None
 
@@ -112,10 +148,13 @@ class Aggregator(object):
         self.histories = [model.train(**kwargs) for model in self.models]
 
     def get_metrics(self, data):
-        self.metrics = [ClassifierMetrics(data, model) for model in self.models]
+        self.metrics_classifiers = [ClassifierMetrics(data, model) for model in self.models]
+        self.metrics_clusterers = [ClustererMetrics(data, model) for model in self.models]
         self.scores = {}
         for cname, c in classifiers.items():
-            self.scores[cname] = [met.test_classifier(c, display_scores=False) for met in self.metrics]
+            self.scores[cname] = [met.test_classifier(c, display_scores=False) for met in self.metrics_classifiers]
+        for cname, c in clusterers.items():
+            self.scores[cname] = [met.test_classifier(c, display_scores=False) for met in self.metrics_clusterers]
         return self.scores
 
     def get_own_metrics(self, data, categories=True):
@@ -229,6 +268,19 @@ def get_metrics(y_true, y_pred):
         'precision': sklearn.metrics.precision_score(y_true, y_pred),
         'recall': sklearn.metrics.recall_score(y_true, y_pred),
         'f1': sklearn.metrics.f1_score(y_true, y_pred)
+    }
+
+
+def get_clustering_metrics(X, y_true, y_pred):
+    return {
+        'adj_rand_index': sklearn.metrics.adjusted_rand_score(y_true, y_pred),
+        'adj_mutual_info': sklearn.metrics.adjusted_mutual_info_score(y_true, y_pred),
+        'homogeneity': sklearn.metrics.homogeneity_score(y_true, y_pred),
+        'completeness': sklearn.metrics.completeness_score(y_true, y_pred),
+        'v-measure': sklearn.metrics.v_measure_score(y_true, y_pred),
+        'fowlkes-mallows': sklearn.metrics.fowlkes_mallows_score(y_true, y_pred),
+        'silhouette': sklearn.metrics.silhouette_score(X, y_pred, sample_size=20000),
+        'calinski-harabaz': sklearn.metrics.calinski_harabaz_score(X, y_pred)
     }
 
 
