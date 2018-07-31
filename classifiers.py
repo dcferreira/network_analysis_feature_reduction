@@ -144,6 +144,10 @@ class Aggregator(object):
         for i, model in enumerate(self.models):
             model.save_model(os.path.join(path, str(i)))
 
+    def load_models(self, path):
+        for i, model in enumerate(self.models):
+            model.load_model(os.path.join(path, str(i)))
+
     def train(self, **kwargs):
         self.histories = [model.train(**kwargs) for model in self.models]
 

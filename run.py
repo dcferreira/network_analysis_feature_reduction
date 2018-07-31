@@ -20,10 +20,14 @@ def pca(args):
 
 
 def _aggregated(mod, data, verbose, path=None):
-    if verbose:
-        mod.train(verbose=2, **args.train)  # force verbose=2 for keras models
+    if path is not None and os.path.exists(path):  # check if models have already been trained
+        print('Loading existing models...')
+        mod.load_models(path)
     else:
-        mod.train(**args.train)
+        if verbose:
+            mod.train(verbose=2, **args.train)  # force verbose=2 for keras models
+        else:
+            mod.train(**args.train)
     mod.get_metrics(data)
     mod.mean(display_scores=True)
     mod.std(display_scores=True)
