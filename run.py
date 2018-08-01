@@ -2,7 +2,7 @@ import os
 import argparse
 import json
 from data import Data
-from models import *
+from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS
 from classifiers import test_model, Aggregator
 
 
