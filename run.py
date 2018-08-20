@@ -2,7 +2,7 @@ import os
 import argparse
 import json
 from data import Data
-from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS
+from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA
 from classifiers import test_model, Aggregator
 
 
@@ -15,6 +15,13 @@ def get_data(args):
 def pca(args):
     data = get_data(args)
     mod = PCA(data, args.size)
+    mod.train()
+    test_model(data, mod)
+
+
+def lda(args):
+    data = get_data(args)
+    mod = LDA(data, args.size)
     mod.train()
     test_model(data, mod)
 
@@ -129,6 +136,11 @@ parser.add_argument('--train', type=json.loads, default={},
 # pca
 parser_pca = subparsers.add_parser('pca', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser_pca.set_defaults(func=pca)
+
+
+# lda
+parser_lda = subparsers.add_parser('lda', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_lda.set_defaults(func=lda)
 
 
 # SemiSupNN arguments_parent

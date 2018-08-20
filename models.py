@@ -5,7 +5,7 @@ from keras import regularizers
 from keras.models import Model, load_model
 from keras import optimizers
 from keras.callbacks import ReduceLROnPlateau
-from sklearn import decomposition, manifold
+from sklearn import decomposition, manifold, discriminant_analysis
 
 
 class BaseModel(object):
@@ -253,6 +253,18 @@ class PCA(BaseModel):
 
     def get_embeddings(self, data):
         return self.pca.transform(data)[:,:self.size]
+
+
+class LDA(BaseModel):
+    def __init__(self, data, size):
+        super().__init__(data=data, size=size)
+        self.lda = discriminant_analysis.LinearDiscriminantAnalysis(n_components=size)
+
+    def train(self, *args, **kwargs):
+        return self.lda.fit(self.data.x_train, self.data.y_train)
+
+    def get_embeddings(self, data):
+        return self.lda.transform(data)
 
 
 class TSNE(BaseModel):
