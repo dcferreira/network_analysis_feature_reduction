@@ -11,18 +11,18 @@ from tabulate import tabulate
 
 classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
                'SVM': lambda : EvolutionaryAlgorithmSearchCV(estimator=svm.LinearSVC(),
-                                           params={'C': np.logspace(-6, 6, num=10),
+                                           params={'C': np.logspace(-6, 6, num=20, base=10),
                                                    'loss': ['squared_hinge']},
                                            scoring='accuracy',
                                            verbose=1,
-                                           population_size=50,
+                                           population_size=10,
                                            n_jobs=10),
                'Logistic Regression': lambda : EvolutionaryAlgorithmSearchCV(
                    estimator=linear_model.LogisticRegression(),
-                   params={'C': np.logspace(-6, 6, num=10)},
+                   params={'C': np.logspace(-6, 6, num=20, base=10)},
                    scoring='accuracy',
                    verbose=1,
-                   population_size=50,
+                   population_size=10,
                    n_jobs=10)}
 clusterers = {'K-Means': cluster.KMeans}
 
