@@ -1,3 +1,4 @@
+import sys
 import os.path
 import logging
 from IPython.core.display import display, HTML
@@ -55,7 +56,9 @@ class ClassifierMetrics(object):
         self.original_cats_scores = None
 
         self.logger = logging.getLogger(type(self).__name__)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
+        if not self.logger.hasHandlers():
+            self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
     def test_classifier(self, classifier, display_scores=True):
         out = {'metric': [], 'original': [], 'reduced': []}
@@ -260,7 +263,7 @@ class Aggregator(object):
             return out
         else:
             for name in out:
-                print('metrics for %s' % name)
+                print('aggregated metrics for %s' % name)
                 tmp = out[name]
 
                 b = tmp['binary']
