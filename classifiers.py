@@ -1,4 +1,5 @@
 import os.path
+import logging
 from IPython.core.display import display, HTML
 import numpy as np
 import sklearn.metrics
@@ -53,12 +54,16 @@ class ClassifierMetrics(object):
         self.original_bin_scores = None
         self.original_cats_scores = None
 
+        self.logger = logging.getLogger(type(self).__name__)
+        self.logger.setLevel(logging.INFO)
+
     def test_classifier(self, classifier, display_scores=True):
         out = {'metric': [], 'original': [], 'reduced': []}
         
         # original
         if self.original_bin_scores is None:
             clf = classifier()
+            self.logger.info('Fitting %s to original data with bin labels' % clf)
             clf.fit(self.x_train, self.y_train)
             dt_preds_u = clf.predict(self.x_test)
             self.original_bin_scores = get_metrics(self.y_test, dt_preds_u)
@@ -67,6 +72,7 @@ class ClassifierMetrics(object):
     
         # reduced
         clf_reduced = classifier()
+        self.logger.info('Fitting %s to reduced data with bin labels' % clf_reduced)
         clf_reduced.fit(self.x_enc_train, self.y_train)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_metrics(self.y_test, dtr_preds_u)
@@ -80,6 +86,7 @@ class ClassifierMetrics(object):
         # original with cats
         if self.original_cats_scores is None:
             clf_cats = classifier()
+            self.logger.info('Fitting %s to original data with category labels' % clf_cats)
             clf_cats.fit(self.x_train, self.cats_train)
             dt_preds_u_cats = clf_cats.predict(self.x_test)
             self.original_cats_scores = get_metrics_cats(self.cats_test, dt_preds_u_cats)
@@ -87,6 +94,7 @@ class ClassifierMetrics(object):
         
         # reduced with cats
         clf_reduced_cats = classifier()
+        self.logger.info('Fitting %s to reduced data with category labels' % clf_reduced_cats)
         clf_reduced_cats.fit(self.x_enc_train, self.cats_train)
         dtr_preds_u_cats = clf_reduced_cats.predict(self.x_enc_test)
         reduced_scores_cats = get_metrics_cats(self.cats_test, dtr_preds_u_cats)
@@ -118,12 +126,14 @@ class ClustererMetrics(ClassifierMetrics):
 
         # original
         clf = classifier()
+        self.logger.info('Fitting %s to original data with bin labels' % clf)
         clf = clf.fit(self.x_train, self.y_train)
         dt_preds_u = clf.predict(self.x_test)
         orig_scores = get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
 
         # reduced
         clf_reduced = classifier()
+        self.logger.info('Fitting %s to reduced data with bin labels' % clf_reduced)
         clf_reduced = clf_reduced.fit(self.x_enc_train, self.y_train)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_clustering_metrics(self.x_enc_test, self.y_test, dtr_preds_u)
