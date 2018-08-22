@@ -3,12 +3,25 @@ from IPython.core.display import display, HTML
 import numpy as np
 import sklearn.metrics
 from sklearn import svm, linear_model, tree, cluster
+from evolutionary_search import EvolutionaryAlgorithmSearchCV
 from tabulate import tabulate
 
 
 classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
-               'SVM': svm.LinearSVC,
-               'Logistic Regression': linear_model.LogisticRegression}
+               'SVM': lambda : EvolutionaryAlgorithmSearchCV(estimator=svm.LinearSVC(),
+                                           params={'C': np.logspace(-6, 6, num=10),
+                                                   'loss': ['squared_hinge']},
+                                           scoring='accuracy',
+                                           verbose=1,
+                                           population_size=50,
+                                           n_jobs=10),
+               'Logistic Regression': lambda : EvolutionaryAlgorithmSearchCV(
+                   estimator=linear_model.LogisticRegression(),
+                   params={'C': np.logspace(-6, 6, num=10)},
+                   scoring='accuracy',
+                   verbose=1,
+                   population_size=50,
+                   n_jobs=10)}
 clusterers = {'K-Means': cluster.KMeans}
 
 
@@ -37,16 +50,24 @@ class ClassifierMetrics(object):
         self.x_enc_train = self.model.get_embeddings(self.x_train)
         self.x_enc_test = self.model.get_embeddings(self.x_test)
 
+        self.original_bin_scores = None
+        self.original_cats_scores = None
+
     def test_classifier(self, classifier, display_scores=True):
         out = {'metric': [], 'original': [], 'reduced': []}
         
         # original
-        clf = classifier().fit(self.x_train, self.y_train)
-        dt_preds_u = clf.predict(self.x_test)
-        orig_scores = get_metrics(self.y_test, dt_preds_u)
+        if self.original_bin_scores is None:
+            clf = classifier()
+            clf.fit(self.x_train, self.y_train)
+            dt_preds_u = clf.predict(self.x_test)
+            self.original_bin_scores = get_metrics(self.y_test, dt_preds_u)
+        orig_scores = self.original_bin_scores
+
     
         # reduced
-        clf_reduced = classifier().fit(self.x_enc_train, self.y_train)
+        clf_reduced = classifier()
+        clf_reduced.fit(self.x_enc_train, self.y_train)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_metrics(self.y_test, dtr_preds_u)
         
@@ -57,12 +78,16 @@ class ClassifierMetrics(object):
 
         out_cat = {'metric': [], 'original': [], 'reduced': []}
         # original with cats
-        clf_cats = classifier().fit(self.x_train, self.cats_train)
-        dt_preds_u_cats = clf_cats.predict(self.x_test)
-        orig_scores_cats = get_metrics_cats(self.cats_test, dt_preds_u_cats)
+        if self.original_cats_scores is None:
+            clf_cats = classifier()
+            clf_cats.fit(self.x_train, self.cats_train)
+            dt_preds_u_cats = clf_cats.predict(self.x_test)
+            self.original_cats_scores = get_metrics_cats(self.cats_test, dt_preds_u_cats)
+        orig_scores_cats = self.original_cats_scores
         
         # reduced with cats
-        clf_reduced_cats = classifier().fit(self.x_enc_train, self.cats_train)
+        clf_reduced_cats = classifier()
+        clf_reduced_cats.fit(self.x_enc_train, self.cats_train)
         dtr_preds_u_cats = clf_reduced_cats.predict(self.x_enc_test)
         reduced_scores_cats = get_metrics_cats(self.cats_test, dtr_preds_u_cats)
         
@@ -92,12 +117,14 @@ class ClustererMetrics(ClassifierMetrics):
         out_cat = {'metric': [], 'original': [], 'reduced': []}  # never filled in
 
         # original
-        clf = classifier().fit(self.x_train, self.y_train)
+        clf = classifier()
+        clf = clf.fit(self.x_train, self.y_train)
         dt_preds_u = clf.predict(self.x_test)
         orig_scores = get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
 
         # reduced
-        clf_reduced = classifier().fit(self.x_enc_train, self.y_train)
+        clf_reduced = classifier()
+        clf_reduced = clf_reduced.fit(self.x_enc_train, self.y_train)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_clustering_metrics(self.x_enc_test, self.y_test, dtr_preds_u)
 
