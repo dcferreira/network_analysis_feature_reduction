@@ -11,18 +11,18 @@ from tabulate import tabulate
 
 classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
                'SVM': lambda : EvolutionaryAlgorithmSearchCV(estimator=svm.LinearSVC(),
-                                           params={'C': np.logspace(-6, 6, num=10),
+                                           params={'C': np.logspace(-6, 6, num=2),#10),
                                                    'loss': ['squared_hinge']},
                                            scoring='accuracy',
                                            verbose=1,
-                                           population_size=50,
+                                           population_size=2,#50,
                                            n_jobs=10),
                'Logistic Regression': lambda : EvolutionaryAlgorithmSearchCV(
                    estimator=linear_model.LogisticRegression(),
-                   params={'C': np.logspace(-6, 6, num=10)},
+                   params={'C': np.logspace(-6, 6, num=2)},#10)},
                    scoring='accuracy',
                    verbose=1,
-                   population_size=50,
+                   population_size=2,#50,
                    n_jobs=10)}
 clusterers = {'K-Means': cluster.KMeans}
 
@@ -33,7 +33,7 @@ def is_interactive():
 
 
 class ClassifierMetrics(object):
-    def __init__(self, data, model):
+    def __init__(self, data, model, fixed_scores):
         """
 
         Args:
@@ -52,8 +52,7 @@ class ClassifierMetrics(object):
         self.x_enc_train = self.model.get_embeddings(self.x_train)
         self.x_enc_test = self.model.get_embeddings(self.x_test)
 
-        self.original_bin_scores = None
-        self.original_cats_scores = None
+        self.fixed_scores = fixed_scores
 
         self.logger = logging.getLogger(type(self).__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -64,15 +63,14 @@ class ClassifierMetrics(object):
         out = {'metric': [], 'original': [], 'reduced': []}
         
         # original
-        if self.original_bin_scores is None:
+        if 'bin_original' not in self.fixed_scores:
             clf = classifier()
             self.logger.info('Fitting %s to original data with bin labels' % clf)
             clf.fit(self.x_train, self.y_train)
             dt_preds_u = clf.predict(self.x_test)
-            self.original_bin_scores = get_metrics(self.y_test, dt_preds_u)
-        orig_scores = self.original_bin_scores
+            self.fixed_scores['bin_original'] = get_metrics(self.y_test, dt_preds_u)
+        orig_scores = self.fixed_scores['bin_original']
 
-    
         # reduced
         clf_reduced = classifier()
         self.logger.info('Fitting %s to reduced data with bin labels' % clf_reduced)
@@ -87,13 +85,13 @@ class ClassifierMetrics(object):
 
         out_cat = {'metric': [], 'original': [], 'reduced': []}
         # original with cats
-        if self.original_cats_scores is None:
+        if 'cats_original' not in self.fixed_scores:
             clf_cats = classifier()
             self.logger.info('Fitting %s to original data with category labels' % clf_cats)
             clf_cats.fit(self.x_train, self.cats_train)
             dt_preds_u_cats = clf_cats.predict(self.x_test)
-            self.original_cats_scores = get_metrics_cats(self.cats_test, dt_preds_u_cats)
-        orig_scores_cats = self.original_cats_scores
+            self.fixed_scores['cats_original'] = get_metrics_cats(self.cats_test, dt_preds_u_cats)
+        orig_scores_cats = self.fixed_scores['cats_original']
         
         # reduced with cats
         clf_reduced_cats = classifier()
@@ -128,11 +126,13 @@ class ClustererMetrics(ClassifierMetrics):
         out_cat = {'metric': [], 'original': [], 'reduced': []}  # never filled in
 
         # original
-        clf = classifier()
-        self.logger.info('Fitting %s to original data with bin labels' % clf)
-        clf = clf.fit(self.x_train, self.y_train)
-        dt_preds_u = clf.predict(self.x_test)
-        orig_scores = get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
+        if 'clust_bin_original' not in self.fixed_scores:
+            clf = classifier()
+            self.logger.info('Fitting %s to original data with bin labels' % clf)
+            clf = clf.fit(self.x_train, self.y_train)
+            dt_preds_u = clf.predict(self.x_test)
+            self.fixed_scores['clust_bin_original'] = get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
+        orig_scores = self.fixed_scores['clust_bin_original']
 
         # reduced
         clf_reduced = classifier()
@@ -169,6 +169,9 @@ class Aggregator(object):
         self.scores = None
         self.histories = None
 
+        self.fixed_scores = {}  # used for keeping track of scores that are the same across the multiple models (no
+        # need to recompute)
+
     def save_models(self, path):
         """
         Uses the ``save_model`` method of the models, and saves the multiple models into a directory.
@@ -192,8 +195,8 @@ class Aggregator(object):
         self.histories = [model.train(**kwargs) for model in self.models]
 
     def get_metrics(self, data):
-        self.metrics_classifiers = [ClassifierMetrics(data, model) for model in self.models]
-        self.metrics_clusterers = [ClustererMetrics(data, model) for model in self.models]
+        self.metrics_classifiers = [ClassifierMetrics(data, model, self.fixed_scores) for model in self.models]
+        self.metrics_clusterers = [ClustererMetrics(data, model, self.fixed_scores) for model in self.models]
         self.scores = {}
         for cname, c in classifiers.items():
             self.scores[cname] = [met.test_classifier(c, display_scores=False) for met in self.metrics_classifiers]
@@ -301,7 +304,7 @@ class Aggregator(object):
 
 def test_model(data, model):
     for name, c in classifiers.items():
-        metrics = ClassifierMetrics(data, model)
+        metrics = ClassifierMetrics(data, model, {})
         print('metrics for %s' % name)
         metrics.test_classifier(c)
 
