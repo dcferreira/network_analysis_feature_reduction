@@ -66,12 +66,14 @@ class ClassifierMetrics(object):
         
         # original
         if 'bin_original' not in self.fixed_scores:
+            self.fixed_scores['bin_original'] = OrderedDict()
+        if str(classifier) not in self.fixed_scores['bin_original']:
             clf = classifier()
             self.logger.info('Fitting %s to original data with bin labels' % clf)
             clf.fit(self.x_train, self.y_train)
             dt_preds_u = clf.predict(self.x_test)
-            self.fixed_scores['bin_original'] = get_metrics(self.y_test, dt_preds_u)
-        orig_scores = self.fixed_scores['bin_original']
+            self.fixed_scores['bin_original'][str(classifier)] = get_metrics(self.y_test, dt_preds_u)
+        orig_scores = self.fixed_scores['bin_original'][str(classifier)]
 
         # reduced
         clf_reduced = classifier()
@@ -88,12 +90,14 @@ class ClassifierMetrics(object):
         out_cat = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
         # original with cats
         if 'cats_original' not in self.fixed_scores:
+            self.fixed_scores['cats_original'] = OrderedDict()
+        if str(classifier) not in self.fixed_scores['cats_original']:
             clf_cats = classifier()
             self.logger.info('Fitting %s to original data with category labels' % clf_cats)
             clf_cats.fit(self.x_train, self.cats_train)
             dt_preds_u_cats = clf_cats.predict(self.x_test)
-            self.fixed_scores['cats_original'] = get_metrics_cats(self.cats_test, dt_preds_u_cats)
-        orig_scores_cats = self.fixed_scores['cats_original']
+            self.fixed_scores['cats_original'][str(classifier)] = get_metrics_cats(self.cats_test, dt_preds_u_cats)
+        orig_scores_cats = self.fixed_scores['cats_original'][str(classifier)]
         
         # reduced with cats
         clf_reduced_cats = classifier()
@@ -129,12 +133,15 @@ class ClustererMetrics(ClassifierMetrics):
 
         # original
         if 'clust_bin_original' not in self.fixed_scores:
+            self.fixed_scores['clust_bin_original'] = OrderedDict()
+        if str(classifier) not in self.fixed_scores['clust_bin_original']:
             clf = classifier()
             self.logger.info('Fitting %s to original data with bin labels' % clf)
             clf = clf.fit(self.x_train, self.y_train)
             dt_preds_u = clf.predict(self.x_test)
-            self.fixed_scores['clust_bin_original'] = get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
-        orig_scores = self.fixed_scores['clust_bin_original']
+            self.fixed_scores['clust_bin_original'][str(classifier)] = \
+                get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
+        orig_scores = self.fixed_scores['clust_bin_original'][str(classifier)]
 
         # reduced
         clf_reduced = classifier()
