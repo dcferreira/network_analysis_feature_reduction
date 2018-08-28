@@ -1,6 +1,7 @@
 import sys
 import os.path
 import logging
+from collections import OrderedDict
 from IPython.core.display import display, HTML
 import numpy as np
 import sklearn.metrics
@@ -8,20 +9,24 @@ from sklearn import svm, linear_model, tree, cluster, model_selection
 from tabulate import tabulate
 
 
-classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
-               'SVM': lambda : model_selection.GridSearchCV(estimator=svm.LinearSVC(),
-                                           param_grid={'C': np.logspace(-6, 6, num=20, base=10),
-                                                       'loss': ['squared_hinge']},
-                                           scoring='accuracy',
-                                           verbose=1,
-                                           n_jobs=10),
-               'Logistic Regression': lambda : model_selection.GridSearchCV(
-                   estimator=linear_model.LogisticRegression(),
-                   param_grid={'C': np.logspace(-6, 6, num=20, base=10)},
-                   scoring='accuracy',
-                   verbose=1,
-                   n_jobs=10)}
-clusterers = {'K-Means': cluster.KMeans}
+classifiers = OrderedDict([
+    ('Decision Tree', tree.DecisionTreeClassifier),
+    ('SVM', lambda : model_selection.GridSearchCV(estimator=svm.LinearSVC(),
+                                                  param_grid={'C': np.logspace(-6, 6, num=20, base=10),
+                                                              'loss': ['squared_hinge']},
+                                                  scoring='accuracy',
+                                                  verbose=1,
+                                                  n_jobs=10)),
+    ('Logistic Regression', lambda : model_selection.GridSearchCV(
+        estimator=linear_model.LogisticRegression(),
+        param_grid={'C': np.logspace(-6, 6, num=20, base=10)},
+        scoring='accuracy',
+        verbose=1,
+        n_jobs=10))
+])
+clusterers = OrderedDict([
+    ('K-Means', cluster.KMeans)
+])
 
 
 def is_interactive():
@@ -57,7 +62,7 @@ class ClassifierMetrics(object):
             self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
     def test_classifier(self, classifier, display_scores=True):
-        out = {'metric': [], 'original': [], 'reduced': []}
+        out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
         
         # original
         if 'bin_original' not in self.fixed_scores:
@@ -80,7 +85,7 @@ class ClassifierMetrics(object):
             out['original'].append(orig_scores[k])
             out['reduced'].append(reduced_scores[k])
 
-        out_cat = {'metric': [], 'original': [], 'reduced': []}
+        out_cat = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
         # original with cats
         if 'cats_original' not in self.fixed_scores:
             clf_cats = classifier()
@@ -119,8 +124,8 @@ class ClassifierMetrics(object):
 
 class ClustererMetrics(ClassifierMetrics):
     def test_classifier(self, classifier, display_scores=True):
-        out = {'metric': [], 'original': [], 'reduced': []}
-        out_cat = {'metric': [], 'original': [], 'reduced': []}  # never filled in
+        out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
+        out_cat = OrderedDict([('metric', []), ('original', []), ('reduced', [])])  # never filled in
 
         # original
         if 'clust_bin_original' not in self.fixed_scores:
@@ -166,8 +171,8 @@ class Aggregator(object):
         self.scores = None
         self.histories = None
 
-        self.fixed_scores = {}  # used for keeping track of scores that are the same across the multiple models (no
-        # need to recompute)
+        self.fixed_scores = OrderedDict()  # used for keeping track of scores that are the same across the multiple
+        # models (no need to recompute)
 
     def save_models(self, path):
         """
@@ -194,7 +199,7 @@ class Aggregator(object):
     def get_metrics(self, data):
         self.metrics_classifiers = [ClassifierMetrics(data, model, self.fixed_scores) for model in self.models]
         self.metrics_clusterers = [ClustererMetrics(data, model, self.fixed_scores) for model in self.models]
-        self.scores = {}
+        self.scores = OrderedDict()
         for cname, c in classifiers.items():
             self.scores[cname] = [met.test_classifier(c, display_scores=False) for met in self.metrics_classifiers]
         for cname, c in clusterers.items():
@@ -224,41 +229,41 @@ class Aggregator(object):
             metrics = [get_metrics(data.y_test, np.rint(mod.predict_labels(data.x_test))) for mod in self.models]
         self.scores['own'] = []
         for met in metrics:
-            new_table = {'metric': [], 'reduced': [], 'original': []}
+            new_table = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
             for k in sorted(met):  # iterate through keys (metric names)
                 new_table['metric'].append(k)
                 new_table['original'].append(-1)  # dummy value
                 new_table['reduced'].append(met[k])
             if categories:
-                self.scores['own'].append(({'metric': [], 'reduced': [], 'original': []}, new_table))
+                self.scores['own'].append((OrderedDict([('metric', []), ('original', []), ('reduced', [])]), new_table))
             else:
-                self.scores['own'].append((new_table, {'metric': [], 'reduced': [], 'original': []}))
+                self.scores['own'].append((new_table, OrderedDict([('metric', []), ('original', []), ('reduced', [])])))
 
         return self.scores
 
     def apply_op(self, op, display_scores=True):
-        out = {}
+        out = OrderedDict()
         for cname, metrics in self.scores.items():
-            out[cname] = {}
-            out[cname]['binary'] = {}
-            out[cname]['binary']['reduced'] = {
-                metrics[0][0]['metric'][met_idx]: op([met[0]['reduced'][met_idx] for met in metrics]) \
+            out[cname] = OrderedDict()
+            out[cname]['binary'] = OrderedDict()
+            out[cname]['binary']['reduced'] = OrderedDict([
+                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][0]['reduced']))
-            }
-            out[cname]['binary']['original'] = {
-                metrics[0][0]['metric'][met_idx]: op([met[0]['original'][met_idx] for met in metrics]) \
+            ])
+            out[cname]['binary']['original'] = OrderedDict([
+                (metrics[0][0]['metric'][met_idx], op([met[0]['original'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][0]['original']))
-            }
+            ])
 
-            out[cname]['multi'] = {}
-            out[cname]['multi']['reduced'] = {
-                metrics[0][1]['metric'][met_idx]: op([met[1]['reduced'][met_idx] for met in metrics]) \
+            out[cname]['multi'] = OrderedDict()
+            out[cname]['multi']['reduced'] = OrderedDict([
+                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][1]['reduced']))
-            }
-            out[cname]['multi']['original'] = {
-                metrics[0][1]['metric'][met_idx]: op([met[1]['original'][met_idx] for met in metrics]) \
+            ])
+            out[cname]['multi']['original'] = OrderedDict([
+                (metrics[0][1]['metric'][met_idx], op([met[1]['original'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][1]['original']))
-            }
+            ])
         if not display_scores:
             return out
         else:
@@ -267,14 +272,14 @@ class Aggregator(object):
                 tmp = out[name]
 
                 b = tmp['binary']
-                b_out = {'metric': [], 'original': [], 'reduced': []}
+                b_out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
                 for k in sorted(b['reduced']):
                     b_out['metric'].append(k)
                     b_out['original'].append(b['original'][k])
                     b_out['reduced'].append(b['reduced'][k])
 
                 m = tmp['multi']
-                m_out = {'metric': [], 'original': [], 'reduced': []}
+                m_out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
                 for k in sorted(m['reduced']):
                     m_out['metric'].append(k)
                     m_out['original'].append(m['original'][k])
@@ -301,44 +306,44 @@ class Aggregator(object):
 
 def test_model(data, model):
     for name, c in classifiers.items():
-        metrics = ClassifierMetrics(data, model, {})
+        metrics = ClassifierMetrics(data, model, OrderedDict())
         print('metrics for %s' % name)
         metrics.test_classifier(c)
 
 
 def get_metrics(y_true, y_pred):
-    return {
-        'accuracy': sklearn.metrics.accuracy_score(y_true, y_pred),
-        'precision': sklearn.metrics.precision_score(y_true, y_pred),
-        'recall': sklearn.metrics.recall_score(y_true, y_pred),
-        'f1': sklearn.metrics.f1_score(y_true, y_pred)
-    }
+    return OrderedDict([
+        ('accuracy', sklearn.metrics.accuracy_score(y_true, y_pred)),
+        ('precision', sklearn.metrics.precision_score(y_true, y_pred)),
+        ('recall', sklearn.metrics.recall_score(y_true, y_pred)),
+        ('f1', sklearn.metrics.f1_score(y_true, y_pred))
+    ])
 
 
 def get_clustering_metrics(X, y_true, y_pred):
-    return {
-        'adj_rand_index': sklearn.metrics.adjusted_rand_score(y_true, y_pred),
-        'adj_mutual_info': sklearn.metrics.adjusted_mutual_info_score(y_true, y_pred),
-        'homogeneity': sklearn.metrics.homogeneity_score(y_true, y_pred),
-        'completeness': sklearn.metrics.completeness_score(y_true, y_pred),
-        'v-measure': sklearn.metrics.v_measure_score(y_true, y_pred),
-        'fowlkes-mallows': sklearn.metrics.fowlkes_mallows_score(y_true, y_pred),
-        'silhouette': sklearn.metrics.silhouette_score(X, y_pred, sample_size=20000),
-        'calinski-harabaz': sklearn.metrics.calinski_harabaz_score(X, y_pred)
-    }
+    return OrderedDict([
+        ('adj_rand_index', sklearn.metrics.adjusted_rand_score(y_true, y_pred)),
+        ('adj_mutual_info', sklearn.metrics.adjusted_mutual_info_score(y_true, y_pred)),
+        ('homogeneity', sklearn.metrics.homogeneity_score(y_true, y_pred)),
+        ('completeness', sklearn.metrics.completeness_score(y_true, y_pred)),
+        ('v-measure', sklearn.metrics.v_measure_score(y_true, y_pred)),
+        ('fowlkes-mallows', sklearn.metrics.fowlkes_mallows_score(y_true, y_pred)),
+        ('silhouette', sklearn.metrics.silhouette_score(X, y_pred, sample_size=20000)),
+        ('calinski-harabaz', sklearn.metrics.calinski_harabaz_score(X, y_pred))
+    ])
 
 
 def get_metrics_cats(y_true, y_pred):
-    out = {'accuracy': sklearn.metrics.accuracy_score(y_true, y_pred)}
-    out.update({'f1_%d' % i : v for i, v in enumerate(
-        sklearn.metrics.f1_score(y_true, y_pred, average=None)
-    )})
-    out.update({'precision_%d' % i : v for i, v in enumerate(
-        sklearn.metrics.precision_score(y_true, y_pred, average=None)
-    )})
-    out.update({'recall_%d' % i : v for i, v in enumerate(
-        sklearn.metrics.recall_score(y_true, y_pred, average=None)
-    )})
+    out = OrderedDict([('accuracy', sklearn.metrics.accuracy_score(y_true, y_pred))])
+    out.update(OrderedDict([('f1_%d' % i , v) for i, v in enumerate(
+        sklearn.metrics.f1_score(y_true, y_pred, average=None))])
+    )
+    out.update(OrderedDict([('precision_%d' % i , v) for i, v in enumerate(
+        sklearn.metrics.precision_score(y_true, y_pred, average=None))])
+    )
+    out.update(OrderedDict([('recall_%d' % i , v) for i, v in enumerate(
+        sklearn.metrics.recall_score(y_true, y_pred, average=None))])
+    )
     out['f1_macro'] = sklearn.metrics.f1_score(y_true, y_pred, average='macro')
     out['f1_micro'] = sklearn.metrics.f1_score(y_true, y_pred, average='micro')
     out['precision_macro'] = sklearn.metrics.precision_score(y_true, y_pred, average='macro')
