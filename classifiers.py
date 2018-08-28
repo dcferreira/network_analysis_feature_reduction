@@ -4,26 +4,23 @@ import logging
 from IPython.core.display import display, HTML
 import numpy as np
 import sklearn.metrics
-from sklearn import svm, linear_model, tree, cluster
-from evolutionary_search import EvolutionaryAlgorithmSearchCV
+from sklearn import svm, linear_model, tree, cluster, model_selection
 from tabulate import tabulate
 
 
 classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
-               'SVM': lambda : EvolutionaryAlgorithmSearchCV(estimator=svm.LinearSVC(),
-                                           params={'C': np.logspace(-6, 6, num=20, base=10),
-                                                   'loss': ['squared_hinge']},
+               'SVM': lambda : model_selection.GridSearchCV(estimator=svm.LinearSVC(),
+                                           param_grid={'C': np.logspace(-6, 6, num=20, base=10),
+                                                       'loss': ['squared_hinge']},
                                            scoring='accuracy',
                                            verbose=1,
-                                           population_size=10,
-                                           n_jobs=10),
-               'Logistic Regression': lambda : EvolutionaryAlgorithmSearchCV(
+                                           n_jobs=20),
+               'Logistic Regression': lambda : model_selection.GridSearchCV(
                    estimator=linear_model.LogisticRegression(),
-                   params={'C': np.logspace(-6, 6, num=20, base=10)},
+                   param_grid={'C': np.logspace(-6, 6, num=20, base=10)},
                    scoring='accuracy',
                    verbose=1,
-                   population_size=10,
-                   n_jobs=10)}
+                   n_jobs=20)}
 clusterers = {'K-Means': cluster.KMeans}
 
 
