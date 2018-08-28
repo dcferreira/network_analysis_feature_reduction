@@ -61,6 +61,13 @@ class ClassifierMetrics(object):
         if not self.logger.hasHandlers():
             self.logger.addHandler(logging.StreamHandler(sys.stdout))
 
+    def _after_fit(self, clf):
+        if 'GridSearchCV' in str(clf):
+            self.logger.warning('best parameters for %s are: %s' % (
+                str(clf),
+                str(clf.best_params_)
+            ))
+
     def test_classifier(self, classifier, display_scores=True):
         out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
         
@@ -71,6 +78,7 @@ class ClassifierMetrics(object):
             clf = classifier()
             self.logger.info('Fitting %s to original data with bin labels' % clf)
             clf.fit(self.x_train, self.y_train)
+            self._after_fit(clf)
             dt_preds_u = clf.predict(self.x_test)
             self.fixed_scores['bin_original'][str(classifier)] = get_metrics(self.y_test, dt_preds_u)
         orig_scores = self.fixed_scores['bin_original'][str(classifier)]
@@ -79,6 +87,7 @@ class ClassifierMetrics(object):
         clf_reduced = classifier()
         self.logger.info('Fitting %s to reduced data with bin labels' % clf_reduced)
         clf_reduced.fit(self.x_enc_train, self.y_train)
+        self._after_fit(clf_reduced)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_metrics(self.y_test, dtr_preds_u)
         
@@ -95,6 +104,7 @@ class ClassifierMetrics(object):
             clf_cats = classifier()
             self.logger.info('Fitting %s to original data with category labels' % clf_cats)
             clf_cats.fit(self.x_train, self.cats_train)
+            self._after_fit(clf_cats)
             dt_preds_u_cats = clf_cats.predict(self.x_test)
             self.fixed_scores['cats_original'][str(classifier)] = get_metrics_cats(self.cats_test, dt_preds_u_cats)
         orig_scores_cats = self.fixed_scores['cats_original'][str(classifier)]
@@ -103,6 +113,7 @@ class ClassifierMetrics(object):
         clf_reduced_cats = classifier()
         self.logger.info('Fitting %s to reduced data with category labels' % clf_reduced_cats)
         clf_reduced_cats.fit(self.x_enc_train, self.cats_train)
+        self._after_fit(clf_reduced_cats)
         dtr_preds_u_cats = clf_reduced_cats.predict(self.x_enc_test)
         reduced_scores_cats = get_metrics_cats(self.cats_test, dtr_preds_u_cats)
         
@@ -138,6 +149,7 @@ class ClustererMetrics(ClassifierMetrics):
             clf = classifier()
             self.logger.info('Fitting %s to original data with bin labels' % clf)
             clf = clf.fit(self.x_train, self.y_train)
+            self._after_fit(clf)
             dt_preds_u = clf.predict(self.x_test)
             self.fixed_scores['clust_bin_original'][str(classifier)] = \
                 get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
@@ -147,6 +159,7 @@ class ClustererMetrics(ClassifierMetrics):
         clf_reduced = classifier()
         self.logger.info('Fitting %s to reduced data with bin labels' % clf_reduced)
         clf_reduced = clf_reduced.fit(self.x_enc_train, self.y_train)
+        self._after_fit(clf_reduced)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_clustering_metrics(self.x_enc_test, self.y_test, dtr_preds_u)
 
