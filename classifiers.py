@@ -14,13 +14,13 @@ classifiers = {'Decision Tree': tree.DecisionTreeClassifier,
                                                        'loss': ['squared_hinge']},
                                            scoring='accuracy',
                                            verbose=1,
-                                           n_jobs=20),
+                                           n_jobs=10),
                'Logistic Regression': lambda : model_selection.GridSearchCV(
                    estimator=linear_model.LogisticRegression(),
                    param_grid={'C': np.logspace(-6, 6, num=20, base=10)},
                    scoring='accuracy',
                    verbose=1,
-                   n_jobs=20)}
+                   n_jobs=10)}
 clusterers = {'K-Means': cluster.KMeans}
 
 
