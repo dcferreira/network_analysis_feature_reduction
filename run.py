@@ -14,16 +14,24 @@ def get_data(args):
 
 def pca(args):
     data = get_data(args)
-    mod = PCA(data, args.size)
+    mod = Aggregator(PCA, 1, data, args.size)
+    # mod = PCA(data, args.size)
     mod.train()
-    test_model(data, mod)
+    mod.get_metrics(data)
+    mod.mean(display_scores=True)
+    mod.std(display_scores=True)
+    # test_model(data, mod)
 
 
 def lda(args):
     data = get_data(args)
-    mod = LDA(data, args.size)
+    mod = Aggregator(LDA, 1, data, args.size)
+    # mod = LDA(data, args.size)
     mod.train()
-    test_model(data, mod)
+    mod.get_metrics(data)
+    mod.mean(display_scores=True)
+    mod.std(display_scores=True)
+    # test_model(data, mod)
 
 
 def _aggregated(mod, data, verbose, path=None):
