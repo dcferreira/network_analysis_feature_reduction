@@ -25,6 +25,9 @@ class BaseModel(object):
     def load_model(self, path):
         raise NotImplementedError
 
+    def get_feature_weights(self):
+        raise NotImplementedError
+
 
 class SemisupNN(BaseModel):
     def __init__(self, data, size, categories=True, reconstruct_weight=0.1,
@@ -106,6 +109,10 @@ class SemisupNN(BaseModel):
         encoded = LeakyReLU(alpha=0.2)(encoded)
         model = Model(inp_layer, encoded)
         return model
+
+    def get_feature_weights(self):
+        """Return weights of the encoder."""
+        return self.encoder.get_weights()[0]
 
     def train(self, **kwargs):
         model = self.trainable_model
@@ -253,6 +260,9 @@ class PCA(BaseModel):
 
     def get_embeddings(self, data):
         return self.pca.transform(data)[:,:self.size]
+
+    def get_feature_weights(self):
+        return self.pca.components_
 
 
 class LDA(BaseModel):
