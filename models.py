@@ -259,19 +259,23 @@ class PCA(BaseModel):
         return self.pca.fit(self.data.x_train)
 
     def get_embeddings(self, data):
-        return self.pca.transform(data)[:,:self.size]
+        return self.pca.transform(data)[:, :self.size]
 
     def get_feature_weights(self):
         return self.pca.components_
 
 
 class LDA(BaseModel):
-    def __init__(self, data, size):
+    def __init__(self, data, size, categories=False):
         super().__init__(data=data, size=size)
+        self.categories = categories
         self.lda = discriminant_analysis.LinearDiscriminantAnalysis(n_components=size)
 
     def train(self, *args, **kwargs):
-        return self.lda.fit(self.data.x_train, self.data.y_train)
+        if self.categories:
+            return self.lda.fit(self.data.x_train, self.data.cats_train)
+        else:
+            return self.lda.fit(self.data.x_train, self.data.y_train)
 
     def get_embeddings(self, data):
         return self.lda.transform(data)
