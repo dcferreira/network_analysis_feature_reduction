@@ -276,6 +276,9 @@ class LDA(BaseModel):
     def get_embeddings(self, data):
         return self.lda.transform(data)
 
+    def get_feature_weights(self):
+        return self.lda.scalings_[:,:self.size]
+
 
 class TSNE(BaseModel):
     def __init__(self, data, size, *args, **kwargs):
