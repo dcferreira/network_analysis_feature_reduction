@@ -1,5 +1,6 @@
 import os
 import argparse
+from collections import OrderedDict
 import json
 from data import Data
 from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA
@@ -126,6 +127,58 @@ def mds(args):
     aggregated(mod, data)
 
 
+def get_weights(args):
+    data = get_data(args)
+
+    weights1 = OrderedDict([('model', []), ('param', [])])
+    weights2 = OrderedDict([('model', []), ('param', [])])
+    for feat in data.columns:
+        weights1[feat] = []
+        weights2[feat] = []
+
+    # bin
+    if args.bin_ae_path is not None:
+        for w in args.bin_ae_weight:
+            model_path = args.bin_ae_path % w
+            assert os.path.exists(model_path), 'model %s doesn\'t exist!' % model_path
+            agg = Aggregator(SemisupNN, 5, data, 2, categories=False, reconstruct_loss='mse',
+                             reconstruct_weight=float(w))
+            agg.load_models(model_path)
+            for mod in agg.models:
+                weights1['model'].append('bin_ae')
+                weights1['param'].append(w)
+                weights2['model'].append('bin_ae')
+                weights2['param'].append(w)
+                for name, (w1, w2) in zip(data.columns, mod.get_feature_weights()):
+                    weights1[name].append(w1)
+                    weights2[name].append(w2)
+
+    # cats
+    if args.cats_ae_path is not None:
+        for w in args.cats_ae_weight:
+            model_path = args.cats_ae_path % w
+            assert os.path.exists(model_path), 'model %s doesn\'t exist!' % model_path
+            agg = Aggregator(SemisupNN, 5, data, 2, categories=True, reconstruct_loss='mse',
+                             reconstruct_weight=float(w))
+            agg.load_models(model_path)
+            for mod in agg.models:
+                weights1['model'].append('cats_ae')
+                weights1['param'].append(w)
+                weights2['model'].append('cats_ae')
+                weights2['param'].append(w)
+                for name, (w1, w2) in zip(data.columns, mod.get_feature_weights()):
+                    weights1[name].append(w1)
+                    weights2[name].append(w2)
+
+    print('Weights 1')
+    for k, v in weights1.items():
+        print(k, ','.join([str(vv) for vv in v]), sep=',')
+
+    print('Weights 2')
+    for k, v in weights2.items():
+        print(k, ','.join([str(vv) for vv in v]), sep=',')
+
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 subparsers = parser.add_subparsers(dest='method')
@@ -217,6 +270,15 @@ parser_mds.add_argument('--n_jobs', type=int, default=1)
 parser_mds.add_argument('--random_state', type=int, default=None)
 parser_mds.add_argument('--dissimilarity', type=str, default='euclidean')
 parser_mds.set_defaults(func=mds)
+
+
+# getting weights
+parser_weights = subparsers.add_parser('weights', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_weights.add_argument('--bin_ae_path', type=str, default=None)
+parser_weights.add_argument('--bin_ae_weight', type=str, nargs='+')
+parser_weights.add_argument('--cats_ae_path', type=str, default=None)
+parser_weights.add_argument('--cats_ae_weight', type=str, nargs='+')
+parser_weights.set_defaults(func=get_weights)
 
 
 if __name__ == '__main__':
