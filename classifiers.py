@@ -44,9 +44,9 @@ class ClassifierMetrics(object):
             model:
         """
         self.data = data
-        self.x_train = self.data.x_train
-        self.y_train = self.data.y_train
-        self.cats_train = self.data.cats_nr_train
+        self.x_train = self.data.x_full_train
+        self.y_train = self.data.y_full_train
+        self.cats_train = self.data.cats_nr_full_train
         self.x_test = self.data.x_test
         self.y_test = self.data.y_test
         self.cats_test = self.data.cats_nr_test

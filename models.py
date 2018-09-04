@@ -279,7 +279,7 @@ class LDA(BaseModel):
 
     def train(self, *args, **kwargs):
         if self.categories:
-            return self.lda.fit(self.data.x_train, self.data.cats_train)
+            return self.lda.fit(self.data.x_train, self.data.cats_nr_train)
         else:
             return self.lda.fit(self.data.x_train, self.data.y_train)
 
