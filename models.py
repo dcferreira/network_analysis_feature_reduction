@@ -32,7 +32,7 @@ class BaseModel(object):
 class SemisupNN(BaseModel):
     def __init__(self, data, size, categories=True, reconstruct_weight=0.1,
                  enc_regularizer_weight=0.1, lr=1e-3, lr_decay=1e-5, dec_regularizer_weight=0.,
-                 reconstruct_loss='binary_crossentropy'):
+                 reconstruct_loss='binary_crossentropy', encoder_regularizer='l2'):
         """
 
         Args:
@@ -48,6 +48,12 @@ class SemisupNN(BaseModel):
         self.lr_decay = lr_decay
         self.dec_regularizer_weight = dec_regularizer_weight
         self.reconstruct_loss = reconstruct_loss
+        if encoder_regularizer == 'l2':
+            self.encoder_regularizer = regularizers.l2
+        elif encoder_regularizer == 'l1':
+            self.encoder_regularizer = regularizers.l1
+        else:
+            raise ValueError('Invalid encoder_regularizer parameter. Possible are l2,l1.')
 
         self.input_layer = Input(shape=(self.data.x_train.shape[1],))
 
@@ -103,8 +109,8 @@ class SemisupNN(BaseModel):
     def get_enc_layer(self, dim, inp_dim):
         inp_layer = Input(shape=inp_dim)
         encoded = Dense(dim, activation=None, kernel_initializer='glorot_normal',
-                        kernel_regularizer=regularizers.l2(self.enc_regularizer_weight),
-                        bias_regularizer=regularizers.l2(self.enc_regularizer_weight)
+                        kernel_regularizer=self.encoder_regularizer(self.enc_regularizer_weight),
+                        bias_regularizer=self.encoder_regularizer(self.enc_regularizer_weight)
                         )(inp_layer)
         encoded = LeakyReLU(alpha=0.2)(encoded)
         model = Model(inp_layer, encoded)

@@ -61,7 +61,7 @@ def unsup_ae(args):
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
                      dec_regularizer_weight=args.dec_regularizer_weight,
-                     lr=args.lr, lr_decay=args.lr_decay)
+                     lr=args.lr, lr_decay=args.lr_decay, encoder_regularizer=args.encoder_regularizer)
     aggregated_keras(mod, data, args.model_path)
 
 
@@ -71,7 +71,7 @@ def sup_cats_ae(args):
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
                      dec_regularizer_weight=args.dec_regularizer_weight,
-                     lr=args.lr, lr_decay=args.lr_decay)
+                     lr=args.lr, lr_decay=args.lr_decay, encoder_regularizer=args.encoder_regularizer)
     aggregated_keras(mod, data, args.model_path)
     mod.get_own_metrics(data, categories=True)
     mod.mean(display_scores=True)
@@ -84,7 +84,7 @@ def bin_ae(args):
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
                      dec_regularizer_weight=args.dec_regularizer_weight,
-                     lr=args.lr, lr_decay=args.lr_decay)
+                     lr=args.lr, lr_decay=args.lr_decay, encoder_regularizer=args.encoder_regularizer)
     aggregated_keras(mod, data, args.model_path)
     mod.get_own_metrics(data, categories=False)
     mod.mean(display_scores=True)
@@ -97,7 +97,7 @@ def cats_ae(args):
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
                      dec_regularizer_weight=args.dec_regularizer_weight,
-                     lr=args.lr, lr_decay=args.lr_decay)
+                     lr=args.lr, lr_decay=args.lr_decay, encoder_regularizer=args.encoder_regularizer)
     aggregated_keras(mod, data, args.model_path)
     mod.get_own_metrics(data, categories=True)
     mod.mean(display_scores=True)
@@ -214,6 +214,8 @@ parent_parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate
 parent_parser.add_argument('--lr_decay', type=float, default=1e-5, help='Decay of learning rate')
 parent_parser.add_argument('--dec_regularizer_weight', type=float, default=0.,
                            help='Weight of the l2 regularization in the decoder')
+parent_parser.add_argument('--encoder_regularizer', type=str, default='l2',
+                           help='Type of regularizer used for the encoder (l2, l1)')
 parent_parser.add_argument('--model_path', type=str, default=None,
                            help='Path in which to save the model.')
 
