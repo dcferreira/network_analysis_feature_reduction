@@ -333,11 +333,16 @@ def test_model(data, model):
 
 
 def get_metrics(y_true, y_pred):
+    def far(y_true, y_pred):
+        conf_mat = sklearn.metrics.confusion_matrix(y_true, y_pred)
+        tn, fp, fn, tp = conf_mat.ravel()
+        return ((fp / (fp + tn)) + (fn / (fn + tp))) / 2
     return OrderedDict([
         ('accuracy', sklearn.metrics.accuracy_score(y_true, y_pred)),
         ('precision', sklearn.metrics.precision_score(y_true, y_pred)),
         ('recall', sklearn.metrics.recall_score(y_true, y_pred)),
-        ('f1', sklearn.metrics.f1_score(y_true, y_pred))
+        ('f1', sklearn.metrics.f1_score(y_true, y_pred)),
+        ('far', far(y_true, y_pred)),
     ])
 
 
