@@ -44,15 +44,19 @@ class ClassifierMetrics(object):
             model:
         """
         self.data = data
-        self.x_train = self.data.x_full_train
-        self.y_train = self.data.y_full_train
-        self.cats_train = self.data.cats_nr_full_train
+        self.x_train = self.data.x_train
+        self.y_train = self.data.y_train
+        self.cats_train = self.data.cats_nr_train
+        self.x_val = self.data.x_val
+        self.y_val = self.data.y_val
+        self.cats_val = self.data.cats_nr_val
         self.x_test = self.data.x_test
         self.y_test = self.data.y_test
         self.cats_test = self.data.cats_nr_test
 
         self.model = model
         self.x_enc_train = self.model.get_embeddings(self.x_train)
+        self.x_enc_val = self.model.get_embeddings(self.x_val)
         self.x_enc_test = self.model.get_embeddings(self.x_test)
 
         self.fixed_scores = fixed_scores
@@ -70,7 +74,8 @@ class ClassifierMetrics(object):
             ))
 
     def test_classifier(self, classifier, display_scores=True):
-        out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
+        out = OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                           ('reduced', []), ('reduced_val', [])])
         
         # original
         if 'bin_original' not in self.fixed_scores:
@@ -82,7 +87,10 @@ class ClassifierMetrics(object):
             self._after_fit(clf)
             dt_preds_u = clf.predict(self.x_test)
             self.fixed_scores['bin_original'][str(classifier)] = get_metrics(self.y_test, dt_preds_u)
+            dt_preds_u_val = clf.predict(self.x_val)
+            self.fixed_scores['bin_original'][str(classifier) + '_val'] = get_metrics(self.y_val, dt_preds_u_val)
         orig_scores = self.fixed_scores['bin_original'][str(classifier)]
+        orig_scores_val =self.fixed_scores['bin_original'][str(classifier) + '_val']
 
         # reduced
         clf_reduced = classifier()
@@ -91,13 +99,18 @@ class ClassifierMetrics(object):
         self._after_fit(clf_reduced)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_metrics(self.y_test, dtr_preds_u)
+        dtr_preds_u_val = clf_reduced.predict(self.x_enc_val)
+        reduced_scores_val = get_metrics(self.y_val, dtr_preds_u_val)
         
         for k in sorted(orig_scores):
             out['metric'].append(k)
             out['original'].append(orig_scores[k])
+            out['original_val'].append(orig_scores_val[k])
             out['reduced'].append(reduced_scores[k])
+            out['reduced_val'].append(reduced_scores_val[k])
 
-        out_cat = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
+        out_cat = OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                               ('reduced', []), ('reduced_val', [])])
         # original with cats
         if 'cats_original' not in self.fixed_scores:
             self.fixed_scores['cats_original'] = OrderedDict()
@@ -108,7 +121,11 @@ class ClassifierMetrics(object):
             self._after_fit(clf_cats)
             dt_preds_u_cats = clf_cats.predict(self.x_test)
             self.fixed_scores['cats_original'][str(classifier)] = get_metrics_cats(self.cats_test, dt_preds_u_cats)
+            dt_preds_u_cats_val = clf_cats.predict(self.x_val)
+            self.fixed_scores['cats_original'][str(classifier) + '_val'] = \
+                get_metrics_cats(self.cats_val, dt_preds_u_cats_val)
         orig_scores_cats = self.fixed_scores['cats_original'][str(classifier)]
+        orig_scores_cats_val = self.fixed_scores['cats_original'][str(classifier) + '_val']
         
         # reduced with cats
         clf_reduced_cats = classifier()
@@ -117,11 +134,15 @@ class ClassifierMetrics(object):
         self._after_fit(clf_reduced_cats)
         dtr_preds_u_cats = clf_reduced_cats.predict(self.x_enc_test)
         reduced_scores_cats = get_metrics_cats(self.cats_test, dtr_preds_u_cats)
+        dtr_preds_u_cats_val = clf_reduced_cats.predict(self.x_enc_val)
+        reduced_scores_cats_val = get_metrics_cats(self.cats_val, dtr_preds_u_cats_val)
         
         for k in sorted(orig_scores_cats):
             out_cat['metric'].append(k)
             out_cat['original'].append(orig_scores_cats[k])
+            out_cat['original_val'].append(orig_scores_cats_val[k])
             out_cat['reduced'].append(reduced_scores_cats[k])
+            out_cat['reduced_val'].append(reduced_scores_cats_val[k])
 
         if display_scores:
             print('binary class:')
@@ -140,8 +161,10 @@ class ClassifierMetrics(object):
 
 class ClustererMetrics(ClassifierMetrics):
     def test_classifier(self, classifier, display_scores=True):
-        out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
-        out_cat = OrderedDict([('metric', []), ('original', []), ('reduced', [])])  # never filled in
+        out = OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                           ('reduced', []), ('reduced_val', [])])
+        out_cat = OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                               ('reduced', []), ('reduced_val', [])])  # never filled in
 
         # original
         if 'clust_bin_original' not in self.fixed_scores:
@@ -154,7 +177,11 @@ class ClustererMetrics(ClassifierMetrics):
             dt_preds_u = clf.predict(self.x_test)
             self.fixed_scores['clust_bin_original'][str(classifier)] = \
                 get_clustering_metrics(self.x_test, self.y_test, dt_preds_u)
+            dt_preds_u_val = clf.predict(self.x_val)
+            self.fixed_scores['clust_bin_original'][str(classifier) + '_val'] = \
+                get_clustering_metrics(self.x_val, self.y_val, dt_preds_u_val)
         orig_scores = self.fixed_scores['clust_bin_original'][str(classifier)]
+        orig_scores_val = self.fixed_scores['clust_bin_original'][str(classifier) + '_val']
 
         # reduced
         clf_reduced = classifier()
@@ -163,11 +190,15 @@ class ClustererMetrics(ClassifierMetrics):
         self._after_fit(clf_reduced)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_clustering_metrics(self.x_enc_test, self.y_test, dtr_preds_u)
+        dtr_preds_u_val = clf_reduced.predict(self.x_enc_val)
+        reduced_scores_val = get_clustering_metrics(self.x_enc_val, self.y_val, dtr_preds_u_val)
 
         for k in sorted(orig_scores):
             out['metric'].append(k)
             out['original'].append(orig_scores[k])
+            out['original_val'].append(orig_scores_val[k])
             out['reduced'].append(reduced_scores[k])
+            out['reduced_val'].append(reduced_scores_val[k])
 
 
         if display_scores:
@@ -271,9 +302,17 @@ class Aggregator(object):
                 (metrics[0][0]['metric'][met_idx], op([met[0]['reduced'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][0]['reduced']))
             ])
+            out[cname]['binary']['reduced_val'] = OrderedDict([
+                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced_val'][met_idx] for met in metrics])) \
+                for met_idx in range(len(metrics[0][0]['reduced_val']))
+            ])
             out[cname]['binary']['original'] = OrderedDict([
                 (metrics[0][0]['metric'][met_idx], op([met[0]['original'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][0]['original']))
+            ])
+            out[cname]['binary']['original_val'] = OrderedDict([
+                (metrics[0][0]['metric'][met_idx], op([met[0]['original_val'][met_idx] for met in metrics])) \
+                for met_idx in range(len(metrics[0][0]['original_val']))
             ])
 
             out[cname]['multi'] = OrderedDict()
@@ -281,9 +320,17 @@ class Aggregator(object):
                 (metrics[0][1]['metric'][met_idx], op([met[1]['reduced'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][1]['reduced']))
             ])
+            out[cname]['multi']['reduced_val'] = OrderedDict([
+                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced_val'][met_idx] for met in metrics])) \
+                for met_idx in range(len(metrics[0][1]['reduced_val']))
+            ])
             out[cname]['multi']['original'] = OrderedDict([
                 (metrics[0][1]['metric'][met_idx], op([met[1]['original'][met_idx] for met in metrics])) \
                 for met_idx in range(len(metrics[0][1]['original']))
+            ])
+            out[cname]['multi']['original_val'] = OrderedDict([
+                (metrics[0][1]['metric'][met_idx], op([met[1]['original_val'][met_idx] for met in metrics])) \
+                for met_idx in range(len(metrics[0][1]['original_val']))
             ])
         if not display_scores:
             return out
@@ -293,18 +340,24 @@ class Aggregator(object):
                 tmp = out[name]
 
                 b = tmp['binary']
-                b_out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
+                b_out = OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                                     ('reduced', []), ('reduced_val', [])])
                 for k in sorted(b['reduced']):
                     b_out['metric'].append(k)
                     b_out['original'].append(b['original'][k])
+                    b_out['original_val'].append(b['original_val'][k])
                     b_out['reduced'].append(b['reduced'][k])
+                    b_out['reduced_val'].append(b['reduced_val'][k])
 
                 m = tmp['multi']
-                m_out = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
+                m_out = OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                                     ('reduced', []), ('reduced_val', [])])
                 for k in sorted(m['reduced']):
                     m_out['metric'].append(k)
                     m_out['original'].append(m['original'][k])
+                    m_out['original_val'].append(m['original_val'][k])
                     m_out['reduced'].append(m['reduced'][k])
+                    m_out['reduced_val'].append(m['reduced_val'][k])
 
                 print('binary class:')
                 if is_interactive():
