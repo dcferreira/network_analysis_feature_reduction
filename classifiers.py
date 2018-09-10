@@ -277,19 +277,29 @@ class Aggregator(object):
                 return new_labels
             metrics = [get_metrics_cats(data.cats_test,
                                         aux_f(mod.predict_labels(data.x_test))) for mod in self.models]
+            metrics_val = [get_metrics_cats(data.cats_val,
+                                        aux_f(mod.predict_labels(data.x_val))) for mod in self.models]
         else:
             metrics = [get_metrics(data.y_test, np.rint(mod.predict_labels(data.x_test))) for mod in self.models]
+            metrics_val = [get_metrics(data.y_val, np.rint(mod.predict_labels(data.x_val))) for mod in self.models]
         self.scores['own'] = []
-        for met in metrics:
-            new_table = OrderedDict([('metric', []), ('original', []), ('reduced', [])])
+        for met, met_val in zip(metrics, metrics_val):
+            new_table = OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                                     ('reduced', []), ('reduced_val', [])])
             for k in sorted(met):  # iterate through keys (metric names)
                 new_table['metric'].append(k)
                 new_table['original'].append(-1)  # dummy value
+                new_table['original_val'].append(-1)
                 new_table['reduced'].append(met[k])
+                new_table['reduced_val'].append(met_val[k])
             if categories:
-                self.scores['own'].append((OrderedDict([('metric', []), ('original', []), ('reduced', [])]), new_table))
+                self.scores['own'].append((OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                                                        ('reduced', []), ('reduced_val', [])]),
+                                           new_table))
             else:
-                self.scores['own'].append((new_table, OrderedDict([('metric', []), ('original', []), ('reduced', [])])))
+                self.scores['own'].append((new_table,
+                                           OrderedDict([('metric', []), ('original', []), ('original_val', []),
+                                                        ('reduced', []), ('reduced_val', [])])))
 
         return self.scores
 
