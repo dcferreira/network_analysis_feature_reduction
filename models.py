@@ -294,7 +294,7 @@ class TSNE(BaseModel):
     def __init__(self, data, size, *args, **kwargs):
         super().__init__(data=data, size=size)
         self.tsne = manifold.TSNE(*args, **kwargs)
-        self.all_data = np.concatenate((self.data.x_train, self.data.x_test))
+        self.all_data = np.concatenate((self.data.x_train, self.data.x_val, self.data.x_test))
         self.all_data_transformed = None
 
     def train(self):
@@ -310,11 +310,16 @@ class TSNE(BaseModel):
         Returns:
             corresponding data to input, transformed by t-SNE
         """
-        # check if input is train or test data... assumes train is bigger than test
-        if len(data) > len(self.all_data_transformed) / 2:
-            return self.all_data_transformed[:self.data.x_train.shape[0]]  # get only train data
+        # check if input is train or test/val data... assumes train is bigger than test and val
+        if len(data) == len(self.data.x_train):
+            return self.all_data_transformed[:self.data.x_train.shape[0]]
+        elif len(data) == len(self.data.x_val):
+            return self.all_data_transformed[self.data.x_train.shape[0]:self.data.x_train.shape[0] +
+                                                                        self.data.x_val.shape[0]]
+        elif len(data) == len(self.data.x_test):
+            return self.all_data_transformed[self.data.x_train.shape[0] + self.data.x_val.shape[0]:]
         else:
-            return self.all_data_transformed[self.data.x_train.shape[0]:]  # get only test data
+            raise ValueError('T-SNE can only return the train, test or validation sets embeddings!')
 
 
 class MDS(BaseModel):
