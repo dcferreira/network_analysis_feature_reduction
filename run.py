@@ -114,7 +114,7 @@ def tsne(args):
                      init=args.init, verbose=args.verbose, random_state=args.random_state,
                      method=args.method, angle=args.angle
                      )
-    aggregated(mod, data)
+    _aggregated(mod, data, False, args.model_path)
 
 
 def mds(args):
@@ -258,6 +258,8 @@ parser_tsne.add_argument('--verbose', type=int, default=0)
 parser_tsne.add_argument('--random_state', type=int, default=None)
 parser_tsne.add_argument('--method', type=str, default='barnes_hut')
 parser_tsne.add_argument('--angle', type=float, default=0.5)
+parser_tsne.add_argument('--model_path', type=str, default=None,
+                           help='Path in which to save the model.')
 parser_tsne.set_defaults(func=tsne)
 
 

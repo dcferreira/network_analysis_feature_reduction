@@ -301,6 +301,16 @@ class TSNE(BaseModel):
         self.all_data_transformed = self.tsne.fit_transform(self.all_data)
         return self.tsne
 
+    def save_model(self, path):
+        try:
+            os.makedirs(path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise ValueError('Path for saving model already exists!')
+        np.save(os.path.join(path, 'transformed_data.npy'), self.all_data_transformed)
+
+    def load_model(self, path):
+        self.all_data_transformed = np.load(os.path.join(path, 'transformed_data.npy'))
 
     def get_embeddings(self, data):
         """
