@@ -10,6 +10,7 @@ categories = ['attack_cat_Analysis', 'attack_cat_Backdoor', 'attack_cat_DoS',
               'attack_cat_Exploits', 'attack_cat_Fuzzers', 'attack_cat_Generic',
               'attack_cat_Reconnaissance', 'attack_cat_Shellcode', 'attack_cat_Worms',
               'label_0']
+binary = ['Normal', 'Attack']
 categories_short = ['Analysis', 'Backdoor', 'DoS',
                     'Exploits', 'Fuzzers', 'Generic',
                     'Reconnaissance', 'Shellcode', 'Worms',

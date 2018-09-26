@@ -39,11 +39,16 @@ def scale(*arrays):
 
 test_x_enc_norm, train_x_enc_norm = scale(test_x_enc, train_embs)
 
-df = pd.DataFrame({'original_pred': np.array(original_pred_y, dtype=int),
-                   'cats_ae_pred': np.array(cats_ae_pred_y, dtype=int),
+original_pred_y = np.array(original_pred_y, dtype=int)
+cats_ae_pred_y = np.array(cats_ae_pred_y, dtype=int)
+
+df = pd.DataFrame({'original_pred': original_pred_y,
+                   'cats_ae_pred': cats_ae_pred_y,
                    'x_cats_ae': test_x_enc_norm[:, 0], 'y_cats_ae': test_x_enc_norm[:, 1],
                    'label': data.y_test, 'category': np.array(data.cats_nr_test, dtype=int),
-                   'cat_str': np.array(data.cats_nr_test, dtype=str)})
+                   'cat_str': np.array(data.cats_nr_test, dtype=str),
+                   'cats_ae_pred_str': np.array(cats_ae_pred_y, dtype=str),
+                   'original_pred_str': np.array(original_pred_y, dtype=str)})
 df.to_pickle('dataframe.pkl')
 np.save('cats_ae_x_train_scaled', train_x_enc_norm, allow_pickle=True)
 np.save('cats_nr_train', np.array(data.cats_nr_train, dtype=int), allow_pickle=True)

@@ -16,18 +16,18 @@ def slider_update(source, df, time_slider):
 
 def update_speed(curdoc, animate_update_cb):
     global callback_id
-    curdoc().remove_periodic_callback(callback_id)  # this is not working
-    callback_id = curdoc().add_periodic_callback(animate_update_cb, speed_slider.value)
+    curdoc.remove_periodic_callback(callback_id)  # this is not working
+    callback_id = curdoc.add_periodic_callback(animate_update_cb, speed_slider.value)
 
 
 def animate(curdoc, animate_update_cb):
     global callback_id
     if button.label == '► Play':
         button.label = '❚❚ Pause'
-        callback_id = curdoc().add_periodic_callback(animate_update_cb, speed_slider.value)
+        callback_id = curdoc.add_periodic_callback(animate_update_cb, speed_slider.value)
     else:
         button.label = '► Play'
-        curdoc().remove_periodic_callback(callback_id)
+        curdoc.remove_periodic_callback(callback_id)
 
 
 button = Button(label='► Play')

@@ -4,10 +4,10 @@ from tabulate import tabulate
 from bokeh.io import curdoc
 from bokeh.layouts import Column, Row
 from bokeh.plotting import figure
-from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper,
+from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper, Select,
                           CDSView, GroupFilter, Legend, Div, TapTool, Circle, CircleCross)
 from bokeh.palettes import Category10
-from attributes import get_attributes, train_visual_classifier, categories, categories_short
+from attributes import get_attributes, train_visual_classifier, categories, categories_short, binary
 from widgets import get_widgets
 
 
@@ -15,48 +15,83 @@ from widgets import get_widgets
 df = pd.read_pickle('dataframe.pkl')
 df_train = np.load('cats_ae_x_train_scaled.npy')
 cats_nr_train = np.load('cats_nr_train.npy')
-train_visual_classifier(df_train, cats_nr_train)
+try:
+    train_visual_classifier(df_train, cats_nr_train)
+except AssertionError:
+    pass  # avoids "Train has already been called once" error
 
 headers = ['', 'Normal', 'Attack']
 
 
 source = ColumnDataSource(df.iloc[:100])
 colors = Category10[10]
-plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
-              tools='hover')
+global_plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
+                     tools='hover')
 color_mapper = CategoricalColorMapper(palette=colors, factors=categories)
-legend_list = []
-for i in range(len(categories)):
-    cat = categories[i]
-    view = CDSView(source=source, filters=[GroupFilter(column_name='cat_str', group=str(i))])
-    rend = plot.scatter('x_cats_ae', 'y_cats_ae', color=colors[i], size=15,
-                        line_color='black', source=source, view=view)
-    rend.selection_glyph = Circle(fill_alpha=1, fill_color=colors[i], line_color='black')
-    rend.nonselection_glyph = CircleCross(fill_alpha=0.1, fill_color=colors[i], line_color=colors[i])
-    legend_list.append((cat, [rend]))
 
-legend = Legend(items=legend_list, location=(20, 0))
-legend.click_policy = 'hide'
-plot.add_layout(legend, 'left')
+print(global_plot.renderers)
 
 
+radius_slider = Slider(start=0, end=0.2, value=0.01, step=0.0001, title="Radius for visual classifier",
+                       format="0[.]0000")
+radius_source = ColumnDataSource({'x': [], 'y': [], 'rad': []})
+
+color_from_dropdown = Select(title="Color by:", value='Categories',
+                             options=['Categories', 'cats_ae_pred', 'original_pred'])
+
+
+global_plot = Row(children=[])
+
+
+def add_renderers():
+    color_attribute, label_mapping = {
+        'Categories': ('cat_str', categories),
+        'cats_ae_pred': ('cats_ae_pred_str', binary),
+        'original_pred': ('original_pred_str', binary),
+    }[color_from_dropdown.value]
+    plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
+                  tools='hover')
+    print(plot.renderers)
+    legend_list = []
+    for i in range(len(pd.unique(df.loc[:, color_attribute]))):
+        cat = label_mapping[i]
+        view = CDSView(source=source, filters=[GroupFilter(column_name=color_attribute, group=str(i))])
+        rend = plot.scatter('x_cats_ae', 'y_cats_ae', color=colors[i], size=15,
+                            line_color='black', source=source, view=view)
+        rend.selection_glyph = Circle(fill_alpha=1, fill_color=colors[i], line_color='black')
+        rend.nonselection_glyph = CircleCross(fill_alpha=0.1, fill_color=colors[i], line_color=colors[i])
+        legend_list.append((cat, [rend]))
+
+    legend = Legend(items=legend_list, location=(20, 0))
+    legend.click_policy = 'hide'
+    plot.add_layout(legend, 'left')
+
+    plot.circle('x', 'y', radius='rad', source=radius_source, line_color='black',
+                line_width=2, color=None, line_dash='dashed', line_alpha=0.7)
+    plot.add_tools(TapTool(behavior='select'))
+    return plot
+
+
+def reload_plot(attr, old, new):
+    global_plot.children = [add_renderers()]
+
+
+color_from_dropdown.on_change('value', reload_plot)
+
+global_plot.children = [add_renderers()]
 point_info = Div()
 point_probabilities = Div()
 
 
-radius_slider = Slider(start=0, end=0.2, value=0.01, step=0.0001, title="Radius for visual", format="0[.]0000")
-radius_source = ColumnDataSource({'x': [], 'y': [], 'rad': []})
-plot.circle('x', 'y', radius='rad', source=radius_source, line_color='black',
-            line_width=2, color=None, line_dash='dashed', line_alpha=0.7)
-
 
 def get_attributes_cb(attr, old, new):
+    # global_plot.children = [add_renderers()]
     get_attributes(source, df, radius_source, radius_slider, point_info, point_probabilities)
 
 
 radius_slider.on_change('value', get_attributes_cb)
 
-plot.add_tools(TapTool(behavior='select'))
+
 source.on_change('selected', get_attributes_cb)
 
 
@@ -92,17 +127,17 @@ def add_column_headers(mat):
     return np.array(out).T
 
 
-time_slider, speed_slider, flows_max_slider, button = get_widgets(curdoc, source, df)
+time_slider, speed_slider, flows_max_slider, button = get_widgets(curdoc(), source, df)
 
 
 layout = Column(children=[
     Row(children=[
         Column(children=[button, speed_slider]),
         Column(children=[time_slider, flows_max_slider]),
-        radius_slider,
+        Column(children=[radius_slider, color_from_dropdown]),
     ]),
     Row(children=[
-        plot,
+        global_plot,
         Column(children=[point_info, point_probabilities]),
     ]),
     Row(children=[
