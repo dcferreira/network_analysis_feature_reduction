@@ -11,9 +11,10 @@ from attributes import get_attributes, train_visual_classifier, categories, cate
 from widgets import get_widgets
 
 
-df = pd.read_pickle('../dataframe.pkl')
-df_train = np.load('../cats_ae_x_train_scaled.npy')
-cats_nr_train = np.load('../cats_nr_train.npy')
+# get these files by running `generate_pickles.py` (need to add root to PYTHONPATH)
+df = pd.read_pickle('dataframe.pkl')
+df_train = np.load('cats_ae_x_train_scaled.npy')
+cats_nr_train = np.load('cats_nr_train.npy')
 train_visual_classifier(df_train, cats_nr_train)
 
 headers = ['', 'Normal', 'Attack']
