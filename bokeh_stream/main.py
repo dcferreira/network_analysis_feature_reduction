@@ -50,7 +50,6 @@ def add_renderers():
     }[color_from_dropdown.value]
     plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
                   tools='hover')
-    print(plot.renderers)
     legend_list = []
     for i in range(len(pd.unique(df.loc[:, color_attribute]))):
         cat = label_mapping[i]
@@ -84,7 +83,6 @@ point_probabilities = Div()
 
 
 def get_attributes_cb(attr, old, new):
-    # global_plot.children = [add_renderers()]
     get_attributes(source, df, radius_source, radius_slider, point_info, point_probabilities)
 
 

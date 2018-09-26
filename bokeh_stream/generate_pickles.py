@@ -48,7 +48,8 @@ df = pd.DataFrame({'original_pred': original_pred_y,
                    'label': data.y_test, 'category': np.array(data.cats_nr_test, dtype=int),
                    'cat_str': np.array(data.cats_nr_test, dtype=str),
                    'cats_ae_pred_str': np.array(cats_ae_pred_y, dtype=str),
-                   'original_pred_str': np.array(original_pred_y, dtype=str)})
+                   'original_pred_str': np.array(original_pred_y, dtype=str)},
+                  index=np.arange(0, len(original_pred_y)))
 df.to_pickle('dataframe.pkl')
 np.save('cats_ae_x_train_scaled', train_x_enc_norm, allow_pickle=True)
 np.save('cats_nr_train', np.array(data.cats_nr_train, dtype=int), allow_pickle=True)

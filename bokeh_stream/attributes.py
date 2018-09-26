@@ -19,6 +19,10 @@ categories_short = ['Analysis', 'Backdoor', 'DoS',
 visual_classifier = VisualClassifier(leafsize=1000)
 
 
+source_idx = None
+real_idx = None
+
+
 def train_visual_classifier(df_train, cats_nr_train):
     visual_classifier.fit(df_train, cats_nr_train)
 
@@ -31,6 +35,16 @@ def get_attributes(source, df, radius_source, radius_slider,
         radius_source.data = {'x': [], 'y': [], 'rad': []}
         return
     dpoint = df.iloc[source.data['index'][idx]]
+
+    # check if selection didn't change when doing ColumnDataSource.stream(...)
+    global source_idx
+    global real_idx
+    if source_idx == idx:
+        dpoint = df.iloc[real_idx]
+        # return  # if index in the source didn't change, we assume the selection wasn't changed by the user
+    else:
+        source_idx = idx
+        real_idx = dpoint.name
 
     # draw radius circle
     radius_source.data = {'x': [dpoint.x_cats_ae],
