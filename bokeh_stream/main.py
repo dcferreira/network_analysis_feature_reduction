@@ -4,11 +4,10 @@ from tabulate import tabulate
 from bokeh.io import curdoc
 from bokeh.layouts import Column, Row
 from bokeh.plotting import figure
-from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper, Select,
+from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper, Select, Button,
                           CDSView, GroupFilter, Legend, Div, TapTool, Circle, CircleCross)
 from bokeh.palettes import Category10
 from attributes import get_attributes, train_visual_classifier, categories, categories_short, binary
-from widgets import get_widgets
 
 
 # get these files by running `generate_pickles.py` (need to add root to PYTHONPATH)
@@ -127,7 +126,49 @@ def add_column_headers(mat):
     return np.array(out).T
 
 
-time_slider, speed_slider, flows_max_slider, button = get_widgets(curdoc(), source, df)
+# play button & slider
+def slider_update(attrname, old, new):
+    flow_nr = time_slider.value
+    # get data
+    source.stream(df.iloc[flow_nr], flows_max_slider.value)
+
+
+time_slider = Slider(start=0, end=len(df), value=0, step=1, title="Flow nr")
+time_slider.on_change('value', slider_update)
+speed_slider = Slider(start=10, end=500, value=10, title="New flow every (ms)")
+flows_max_slider = Slider(start=10, end=10000, value=200, step=10, title="Number of flows to keep")
+
+callback_id = None
+
+
+def animate_update():
+    flow_nr = time_slider.value + 1
+    if flow_nr >= len(df):
+        flow_nr = 0
+    time_slider.value = flow_nr
+
+
+def update_speed(attrname, old, new):
+    global callback_id
+    curdoc.remove_periodic_callback(callback_id)  # this is not working
+    callback_id = curdoc.add_periodic_callback(animate_update, speed_slider.value)
+
+
+speed_slider.on_change('value', update_speed)
+
+
+def animate():
+    global callback_id
+    if button.label == '► Play':
+        button.label = '❚❚ Pause'
+        callback_id = curdoc().add_periodic_callback(animate_update, speed_slider.value)
+    else:
+        button.label = '► Play'
+        curdoc().remove_periodic_callback(callback_id)
+
+
+button = Button(label='► Play')
+button.on_click(animate)
 
 
 layout = Column(children=[
