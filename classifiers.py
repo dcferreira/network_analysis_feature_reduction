@@ -5,6 +5,7 @@ from collections import OrderedDict
 from IPython.core.display import display, HTML
 import numpy as np
 import sklearn.metrics
+from scipy.spatial import cKDTree
 from sklearn import svm, linear_model, tree, cluster, model_selection
 from tabulate import tabulate
 
@@ -440,3 +441,61 @@ def get_metrics_cats(y_true, y_pred):
     out['recall_macro'] = sklearn.metrics.recall_score(y_true, y_pred, average='macro')
     out['recall_micro'] = sklearn.metrics.recall_score(y_true, y_pred, average='micro')
     return out
+
+
+class VisualClassifier(object):
+    """Takes 2D train data, and for each new test point returns probability of belonging to each class.
+    Probabilities are calculated by taking the classes from the samples in the train data within eps (given as input)
+    distance of the test point."""
+    def __init__(self, leafsize=16):
+        """
+
+        Args:
+            leafsize (int): leafsize parameter of scipy.spatial.KDTree
+        """
+        self.leafsize = leafsize
+        self.tree = None
+        self.labels = None
+        self.possible_labels = None
+
+    def fit(self, data, labels):
+        if data.shape[1] != 2:
+            raise ValueError('Given training data must be 2-dimensional!')
+        if self.tree is not None:
+            raise AssertionError('Train has already been called once!')
+        self.labels = np.array(labels, dtype=int)
+        self.possible_labels = np.unique(self.labels)
+        self.tree = cKDTree(data, self.leafsize)
+
+    def predict_proba(self, x, eps=0.05):
+        if len(x.shape) == 2:
+            return [self._predict_proba_single(self.tree.query_ball_point(xx, r=eps)) for xx in x]
+        elif len(x.shape) == 1:
+            indices = self.tree.query_ball_point(x, r=eps)
+            return self._predict_proba_single(indices)
+        else:
+            raise ValueError('Input has invalid dimensions!')
+
+    def predict(self, x, eps=0.05):
+        probabilities = self.predict_proba(x, eps)
+
+        def get_class(probs):
+            if probs.sum() == 0:
+                return -1
+            else:
+                return np.argmax(probs)
+
+        if len(x.shape) == 1:
+            return get_class(probabilities)
+        elif len(x.shape) == 2:
+            return np.apply_along_axis(get_class, 1, probabilities)
+        else:
+            raise ValueError('Input has invalid dimensions!')
+
+    def _predict_proba_single(self, indices):
+        values, counts = np.unique(np.array([self.labels[i] for i in indices]), return_counts=True)
+        counts = counts / len(indices)  # normalize to probability
+        arr = np.zeros(len(self.possible_labels))
+        for v, c in zip(values, counts):
+            arr[v] += c
+        return arr
