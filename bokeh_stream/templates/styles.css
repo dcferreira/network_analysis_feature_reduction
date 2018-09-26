@@ -38,9 +38,17 @@ th:hover::after {
 }
 
 table {
-    border-collapse: collapse;
+  border-collapse: collapse;
 }
 
 table, th, td {
-    border: 1px solid black;
+  border: 1px solid black;
+}
+
+div.probs th, div.probs td {
+  min-width: 50px;
+}
+
+div.attrs th, div.attrs td {
+  min-width: 100px;
 }
