@@ -58,7 +58,6 @@ radius_slider.on_change('value', get_attributes_cb)
 
 plot.add_tools(TapTool(behavior='select'))
 source.on_change('selected', get_attributes_cb)
-# plot.add_tools(HoverTool(tooltips="@index", show_arrow=False, point_policy='follow_mouse'))
 
 
 cmatrix_cats_ae = Div()
@@ -98,7 +97,6 @@ time_slider, speed_slider, flows_max_slider, button = get_widgets(curdoc, source
 
 layout = Column(children=[
     Row(children=[
-        # WidgetBox(button, width=100),
         Column(children=[button, speed_slider]),
         Column(children=[time_slider, flows_max_slider]),
         radius_slider,
