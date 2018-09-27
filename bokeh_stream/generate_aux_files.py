@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import holoviews as hv
-from bokeh.io import export_png
 from bokeh.palettes import Category10
 from sklearn.tree import DecisionTreeClassifier
 try:
