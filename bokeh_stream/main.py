@@ -28,8 +28,6 @@ global_plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
                      tools='hover')
 color_mapper = CategoricalColorMapper(palette=colors, factors=categories)
 
-print(global_plot.renderers)
-
 
 radius_slider = Slider(start=0, end=0.2, value=0.01, step=0.0001, title="Radius for visual classifier",
                        format="0[.]0000")
