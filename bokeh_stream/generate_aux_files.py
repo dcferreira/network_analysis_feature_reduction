@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import holoviews as hv
+from bokeh.io import export_png
+from bokeh.palettes import Category10
 from sklearn.tree import DecisionTreeClassifier
 try:
     from models import SemisupNN
@@ -51,7 +54,17 @@ df = pd.DataFrame({'original_pred': original_pred_y,
                    'original_pred_str': np.array(original_pred_y, dtype=str),
                    'index': np.arange(0, len(original_pred_y))},
                   )
-df.to_pickle('dataframe.pkl')
-np.save('cats_ae_x_train_scaled', train_x_enc_norm, allow_pickle=True)
-np.save('cats_nr_train', np.array(data.cats_nr_train, dtype=int), allow_pickle=True)
-print(data.columns[-11:-1])
+df.to_pickle('data/dataframe.pkl')
+np.save('data/cats_ae_x_train_scaled', train_x_enc_norm, allow_pickle=True)
+np.save('data/cats_nr_train', np.array(data.cats_nr_train, dtype=int), allow_pickle=True)
+
+
+renderer = hv.renderer('bokeh')
+
+cmap = Category10[10]
+traindf = pd.DataFrame({'x': train_x_enc_norm[:, 0], 'y': train_x_enc_norm[:, 1],
+                        'category': np.array(data.cats_nr_train, dtype=int)})
+plot = hv.Points(traindf, vdims=['category']).redim.range(x=(0, 1), y=(0, 1)).sort('category').options(
+    color_index='category', cmap=cmap, xaxis=None, yaxis=None, alpha=0.5, marker='x', toolbar=None, border=0,
+)
+renderer.save(plot.options(width=800, height=800), 'static/images/bokeh_plot', fmt='png')

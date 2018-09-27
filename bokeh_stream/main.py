@@ -4,16 +4,16 @@ from tabulate import tabulate
 from bokeh.io import curdoc
 from bokeh.layouts import Column, Row
 from bokeh.plotting import figure
-from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper, Select, Button,
+from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper, Select, Button, ImageURL,
                           CDSView, GroupFilter, Legend, Div, TapTool, Circle, CircleCross)
 from bokeh.palettes import Category10
 from attributes import get_attributes, train_visual_classifier, categories, categories_short, binary
 
 
-# get these files by running `generate_pickles.py` (need to add root to PYTHONPATH)
-df = pd.read_pickle('dataframe.pkl')
-df_train = np.load('cats_ae_x_train_scaled.npy')
-cats_nr_train = np.load('cats_nr_train.npy')
+# get these files by running `generate_aux_files.py` (need to add root to PYTHONPATH)
+df = pd.read_pickle('data/dataframe.pkl')
+df_train = np.load('data/cats_ae_x_train_scaled.npy')
+cats_nr_train = np.load('data/cats_nr_train.npy')
 try:
     train_visual_classifier(df_train, cats_nr_train)
 except AssertionError:
@@ -48,6 +48,10 @@ def add_renderers():
     }[color_from_dropdown.value]
     plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
                   tools='hover')
+
+    plot.image_url(url=['bokeh_stream/static/images/bokeh_plot.png'],
+                   x=0, y=0, w=1, h=1, anchor='bottom_left')
+
     legend_list = []
     for i in range(len(pd.unique(df.loc[:, color_attribute]))):
         cat = label_mapping[i]
