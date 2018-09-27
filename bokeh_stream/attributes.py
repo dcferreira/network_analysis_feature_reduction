@@ -40,8 +40,8 @@ def get_attributes(source, df, radius_source, radius_slider,
     global source_idx
     global real_idx
     if source_idx == idx:
+        # if index in the source didn't change, we assume the selection wasn't changed by the user
         dpoint = df.iloc[real_idx]
-        # return  # if index in the source didn't change, we assume the selection wasn't changed by the user
     else:
         source_idx = idx
         real_idx = dpoint.name
