@@ -4,8 +4,8 @@ from tabulate import tabulate
 from bokeh.io import curdoc
 from bokeh.layouts import Column, Row
 from bokeh.plotting import figure
-from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper, Select, Button, ImageURL,
-                          CDSView, GroupFilter, Legend, Div, TapTool, Circle, CircleCross)
+from bokeh.models import (ColumnDataSource, Slider, CategoricalColorMapper, Select, Button, Toggle,
+                          CDSView, GroupFilter, Legend, Div, TapTool, Circle, CircleCross, HoverTool)
 from bokeh.palettes import Category10
 from attributes import get_attributes, train_visual_classifier, categories, categories_short, binary
 
@@ -24,9 +24,17 @@ headers = ['', 'Normal', 'Attack']
 
 source = ColumnDataSource(df.iloc[:100])
 colors = Category10[10]
-global_plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
-                     tools='hover')
+TOOLTIPS = [
+    ('index', "@index"),
+    ('(x, y)', '(@x_cats_ae, @y_cats_ae)'),
+    ('category', '@cat_str'),
+]
+hover_tool = HoverTool(tooltips=TOOLTIPS)
+global_plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400)
 color_mapper = CategoricalColorMapper(palette=colors, factors=categories)
+
+
+toggle_background_button = Toggle(label="View train data", button_type='success', active=True)
 
 
 radius_slider = Slider(start=0, end=0.2, value=0.01, step=0.0001, title="Radius for visual classifier",
@@ -46,11 +54,12 @@ def add_renderers():
         'cats_ae_pred': ('cats_ae_pred_str', binary),
         'original_pred': ('original_pred_str', binary),
     }[color_from_dropdown.value]
-    plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400,
-                  tools='hover')
+    plot = figure(x_range=(0, 1), y_range=(0, 1), width=800, height=400, tools=[hover_tool])
+    plot.add_tools(TapTool(behavior='select'))
 
-    plot.image_url(url=['bokeh_stream/static/images/bokeh_plot.png'],
-                   x=0, y=0, w=1, h=1, anchor='bottom_left')
+    if toggle_background_button.active:
+        plot.image_url(url=['bokeh_stream/static/images/bokeh_plot.png'],
+                       x=0, y=0, w=1, h=1, anchor='bottom_left')
 
     legend_list = []
     for i in range(len(pd.unique(df.loc[:, color_attribute]))):
@@ -68,7 +77,6 @@ def add_renderers():
 
     plot.circle('x', 'y', radius='rad', source=radius_source, line_color='black',
                 line_width=2, color=None, line_dash='dashed', line_alpha=0.7)
-    plot.add_tools(TapTool(behavior='select'))
     return plot
 
 
@@ -76,7 +84,16 @@ def reload_plot(attr, old, new):
     global_plot.children = [add_renderers()]
 
 
+def remove_background(_):
+    if not toggle_background_button.active:
+        toggle_background_button.button_type = 'danger'
+    else:
+        toggle_background_button.button_type = 'success'
+    global_plot.children = [add_renderers()]
+
+
 color_from_dropdown.on_change('value', reload_plot)
+toggle_background_button.on_click(remove_background)
 
 global_plot.children = [add_renderers()]
 point_info = Div()
@@ -136,7 +153,7 @@ def slider_update(attrname, old, new):
 time_slider = Slider(start=0, end=len(df), value=0, step=1, title="Flow nr")
 time_slider.on_change('value', slider_update)
 speed_slider = Slider(start=10, end=500, value=10, title="New flow every (ms)")
-flows_max_slider = Slider(start=10, end=10000, value=200, step=10, title="Number of flows to keep")
+flows_max_slider = Slider(start=200, end=1000, value=200, step=10, title="Number of flows to keep")
 
 callback_id = None
 
@@ -150,8 +167,9 @@ def animate_update():
 
 def update_speed(attrname, old, new):
     global callback_id
-    curdoc.remove_periodic_callback(callback_id)  # this is not working
-    callback_id = curdoc.add_periodic_callback(animate_update, speed_slider.value)
+    if callback_id is not None:
+        curdoc().remove_periodic_callback(callback_id)  # this is not working
+        callback_id = curdoc().add_periodic_callback(animate_update, speed_slider.value)
 
 
 speed_slider.on_change('value', update_speed)
@@ -165,6 +183,7 @@ def animate():
     else:
         button.label = '► Play'
         curdoc().remove_periodic_callback(callback_id)
+        callback_id = None
 
 
 button = Button(label='► Play')
@@ -173,9 +192,10 @@ button.on_click(animate)
 
 layout = Column(children=[
     Row(children=[
-        Column(children=[button, speed_slider]),
-        Column(children=[time_slider, flows_max_slider]),
-        Column(children=[radius_slider, color_from_dropdown]),
+        Column(children=[toggle_background_button, button]),
+        Column(children=[speed_slider, time_slider]),
+        Column(children=[flows_max_slider, radius_slider]),
+        Column(children=[color_from_dropdown]),
     ]),
     Row(children=[
         global_plot,

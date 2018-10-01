@@ -63,6 +63,7 @@ def get_attributes(source, df, radius_source, radius_slider,
     cats_pred = ('✅ ' if dpoint.cats_ae_pred == (dpoint.category != 9) else '❌ ') + bin_class[dpoint.cats_ae_pred]
     orig_pred = ('✅ ' if dpoint.original_pred == (dpoint.category != 9) else '❌ ') + bin_class[dpoint.original_pred]
     point_info.text = '<div class="attrs">' + tabulate([
+        ['index', real_idx],
         ['category', categories_short[dpoint.category]],
         ['cats_ae_pred', cats_pred],
         ['original_pred', orig_pred],
