@@ -1,5 +1,9 @@
 import numpy as np
 from tabulate import tabulate
+from bokeh.models import ColumnDataSource
+from bokeh.plotting import figure
+from bokeh.palettes import Category10
+from bokeh.transform import factor_cmap
 try:
     from classifiers import VisualClassifier
 except ImportError:
@@ -15,6 +19,7 @@ categories_short = ['Analysis', 'Backdoor', 'DoS',
                     'Exploits', 'Fuzzers', 'Generic',
                     'Reconnaissance', 'Shellcode', 'Worms',
                     'label_0']
+cmap = Category10[10]
 
 visual_classifier = VisualClassifier(leafsize=1000)
 
@@ -75,8 +80,11 @@ def get_attributes(source, df, radius_source, radius_slider,
         dpoint.x_cats_ae,
         dpoint.y_cats_ae
     ]), eps=radius_slider.value)
-    point_probabilities.text = '<div class="probs">' + tabulate(
-        [['{:.4f}'.format(x) for x in probs]],
-        headers=categories_short,
-        numalign='left',
-        tablefmt='html') + '</div>'
+
+    source = ColumnDataSource(data={'category': categories_short, 'probability': probs})
+    barplot = figure(x_range=(0, 1), y_range=categories_short, plot_height=200, toolbar_location=None,
+                     title='Visual classifier\'s categories probability distribution')
+    barplot.hbar(y='category', right='probability', source=source, height=0.95,
+                 fill_color=factor_cmap('category', palette=cmap, factors=categories_short),
+                 line_color='white')
+    point_probabilities.children = [barplot]

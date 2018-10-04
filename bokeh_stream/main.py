@@ -97,8 +97,7 @@ toggle_background_button.on_click(remove_background)
 
 global_plot.children = [add_renderers()]
 point_info = Div()
-point_probabilities = Div()
-
+point_probabilities = Row(children=[])
 
 
 def get_attributes_cb(attr, old, new):
