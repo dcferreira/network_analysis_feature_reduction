@@ -1,6 +1,6 @@
 import numpy as np
 from tabulate import tabulate
-from bokeh.models import ColumnDataSource
+from bokeh.models import ColumnDataSource, Div
 from bokeh.plotting import figure
 from bokeh.palettes import Category10
 from bokeh.transform import factor_cmap
@@ -76,10 +76,10 @@ def get_attributes(source, df, radius_source, radius_slider,
         ['y', '{:.4f}'.format(dpoint.y_cats_ae)],
         ['visual_pred', visual_pred_str],
     ], tablefmt='html') + '</div>'
-    probs = visual_classifier.predict_proba(np.array([
+    probs, counts = visual_classifier.predict_proba(np.array([
         dpoint.x_cats_ae,
         dpoint.y_cats_ae
-    ]), eps=radius_slider.value)
+    ]), eps=radius_slider.value, return_counts=True)
 
     source = ColumnDataSource(data={'category': categories_short, 'probability': probs})
     barplot = figure(x_range=(0, 1), y_range=categories_short, plot_height=200, toolbar_location=None,
@@ -87,4 +87,10 @@ def get_attributes(source, df, radius_source, radius_slider,
     barplot.hbar(y='category', right='probability', source=source, height=0.95,
                  fill_color=factor_cmap('category', palette=cmap, factors=categories_short),
                  line_color='white')
-    point_probabilities.children = [barplot]
+
+    outlierness_score = Div()
+    outlierness_score.text = "<p>#(samples within eps) = %d</p>" \
+                             "<p>eps / #(samples within eps) = %s</p>" % \
+                             (counts,
+                              counts / radius_slider.value)
+    point_probabilities.children = [barplot, outlierness_score]

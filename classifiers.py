@@ -467,12 +467,22 @@ class VisualClassifier(object):
         self.possible_labels = np.unique(self.labels)
         self.tree = cKDTree(data, self.leafsize)
 
-    def predict_proba(self, x, eps=0.05):
+    def predict_proba(self, x, eps=0.05, return_counts=False):
         if len(x.shape) == 2:
-            return [self._predict_proba_single(self.tree.query_ball_point(xx, r=eps)) for xx in x]
+            output = []
+            for xx in x:
+                indices = self.tree.query_ball_point(xx, r=eps)
+                if not return_counts:
+                    output.append(self._predict_proba_single(indices))
+                else:
+                    output.append(self._predict_proba_single(indices), len(indices))
+            return output
         elif len(x.shape) == 1:
             indices = self.tree.query_ball_point(x, r=eps)
-            return self._predict_proba_single(indices)
+            if not return_counts:
+                return self._predict_proba_single(indices)
+            else:
+                return self._predict_proba_single(indices), len(indices)
         else:
             raise ValueError('Input has invalid dimensions!')
 
