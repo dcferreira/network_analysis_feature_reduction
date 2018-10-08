@@ -181,9 +181,11 @@ def get_weights(args):
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-subparsers = parser.add_subparsers(dest='method')
+subparsers = parser.add_subparsers(dest='method', help='Feature reduction method to use.')
 subparsers.required = True
-parser.add_argument('datapath', type=str)
+parser.add_argument('datapath', type=str, help='Path for data.\n'
+'This path should be a directory that includes the files: "UNSW-NB15_all.csv", "UNSW_NB15_training-set.csv", ' 
+'and "UNSW_NB15_testing-set.csv".')
 parser.add_argument('--size', type=int, default=2, help='Reduce data to this dimension')
 parser.add_argument('--number', type=int, default=5, help='Number of models used to average')
 parser.add_argument('--train', type=json.loads, default={},
