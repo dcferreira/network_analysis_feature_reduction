@@ -29,7 +29,7 @@ As an example, running ``cats_ae``, with ``$DATAPATH`` the path where the data i
 
 .. code:: bash
 
-    python run.py --size 2 --number 5 cats_ae --reconstruct_loss mse --reconstruct_weight $DATAPATH
+    python run.py --size 2 --number 5 cats_ae --reconstruct_loss mse --reconstruct_weight 1e-3 $DATAPATH
 
 Using Docker
 ~~~~~~~~~~~~
@@ -47,7 +47,7 @@ To run the same example as above, run
 
 .. code:: bash
 
-    docker run dcferreira/network_analysis_feature_reduction --size 2 --number 5 cats_ae --reconstruct_loss mse --reconstruct_weight $DATAPATH
+    docker run dcferreira/network_analysis_feature_reduction --size 2 --number 5 cats_ae --reconstruct_loss mse --reconstruct_weight 1e-3 $DATAPATH
 
 
 Traffic Flow Mapper
