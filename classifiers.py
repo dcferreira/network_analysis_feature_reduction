@@ -53,13 +53,13 @@ class ClassifierMetrics(object):
         self.data = data
         self.x_train = self.data.x_train
         self.y_train = self.data.y_train
-        self.cats_train = self.data.cats_nr_train
+        self.cats_train = np.array(self.data.cats_nr_train)
         self.x_val = self.data.x_val
         self.y_val = self.data.y_val
-        self.cats_val = self.data.cats_nr_val
+        self.cats_val = np.array(self.data.cats_nr_val)
         self.x_test = self.data.x_test
         self.y_test = self.data.y_test
-        self.cats_test = self.data.cats_nr_test
+        self.cats_test = np.array(self.data.cats_nr_test)
 
         self.model = model
         self.x_enc_train = self.model.get_embeddings(self.x_train)
@@ -83,6 +83,8 @@ class ClassifierMetrics(object):
     def test_classifier(self, classifier, display_scores=True):
         out = OrderedDict([('metric', []), ('original', []), ('original_val', []), ('original_train', []),
                            ('reduced', []), ('reduced_val', []), ('reduced_train', [])])
+        labeled_data = self.y_train > -1
+        labeled_data_val = self.y_val > -1
 
         # original
         if 'bin_original' not in self.fixed_scores:
@@ -90,14 +92,16 @@ class ClassifierMetrics(object):
         if str(classifier) not in self.fixed_scores['bin_original']:
             clf = classifier()
             self.logger.info('Fitting %s to original data with bin labels' % clf)
-            clf.fit(self.x_train, self.y_train)
+            clf.fit(self.x_train[labeled_data], self.y_train[labeled_data])
             self._after_fit(clf)
             dt_preds_u = clf.predict(self.x_test)
             self.fixed_scores['bin_original'][str(classifier)] = get_metrics(self.y_test, dt_preds_u)
-            dt_preds_u_val = clf.predict(self.x_val)
-            self.fixed_scores['bin_original'][str(classifier) + '_val'] = get_metrics(self.y_val, dt_preds_u_val)
-            dt_preds_u_train = clf.predict(self.x_train)
-            self.fixed_scores['bin_original'][str(classifier) + '_train'] = get_metrics(self.y_train, dt_preds_u_train)
+            dt_preds_u_val = clf.predict(self.x_val[labeled_data_val])
+            self.fixed_scores['bin_original'][str(classifier) + '_val'] = get_metrics(self.y_val[labeled_data_val],
+                                                                                      dt_preds_u_val)
+            dt_preds_u_train = clf.predict(self.x_train[labeled_data])
+            self.fixed_scores['bin_original'][str(classifier) + '_train'] = \
+                get_metrics(self.y_train[labeled_data], dt_preds_u_train)
         orig_scores = self.fixed_scores['bin_original'][str(classifier)]
         orig_scores_val = self.fixed_scores['bin_original'][str(classifier) + '_val']
         orig_scores_train = self.fixed_scores['bin_original'][str(classifier) + '_train']
@@ -105,14 +109,14 @@ class ClassifierMetrics(object):
         # reduced
         clf_reduced = classifier()
         self.logger.info('Fitting %s to reduced data with bin labels' % clf_reduced)
-        clf_reduced.fit(self.x_enc_train, self.y_train)
+        clf_reduced.fit(self.x_enc_train[labeled_data], self.y_train[labeled_data])
         self._after_fit(clf_reduced)
         dtr_preds_u = clf_reduced.predict(self.x_enc_test)
         reduced_scores = get_metrics(self.y_test, dtr_preds_u)
-        dtr_preds_u_val = clf_reduced.predict(self.x_enc_val)
-        reduced_scores_val = get_metrics(self.y_val, dtr_preds_u_val)
-        dtr_preds_u_train = clf_reduced.predict(self.x_enc_train)
-        reduced_scores_train = get_metrics(self.y_train, dtr_preds_u_train)
+        dtr_preds_u_val = clf_reduced.predict(self.x_enc_val[labeled_data_val])
+        reduced_scores_val = get_metrics(self.y_val[labeled_data_val], dtr_preds_u_val)
+        dtr_preds_u_train = clf_reduced.predict(self.x_enc_train[labeled_data])
+        reduced_scores_train = get_metrics(self.y_train[labeled_data], dtr_preds_u_train)
 
         for k in sorted(orig_scores):
             out['metric'].append(k)
@@ -125,22 +129,24 @@ class ClassifierMetrics(object):
 
         out_cat = OrderedDict([('metric', []), ('original', []), ('original_val', []), ('original_train', []),
                                ('reduced', []), ('reduced_val', []), ('reduced_train', [])])
+        labeled_cats_data = self.cats_train > -1
+        labeled_cats_data_val = self.cats_val > -1
         # original with cats
         if 'cats_original' not in self.fixed_scores:
             self.fixed_scores['cats_original'] = OrderedDict()
         if str(classifier) not in self.fixed_scores['cats_original']:
             clf_cats = classifier()
             self.logger.info('Fitting %s to original data with category labels' % clf_cats)
-            clf_cats.fit(self.x_train, self.cats_train)
+            clf_cats.fit(self.x_train[labeled_cats_data], self.cats_train[labeled_cats_data])
             self._after_fit(clf_cats)
             dt_preds_u_cats = clf_cats.predict(self.x_test)
             self.fixed_scores['cats_original'][str(classifier)] = get_metrics_cats(self.cats_test, dt_preds_u_cats)
-            dt_preds_u_cats_val = clf_cats.predict(self.x_val)
+            dt_preds_u_cats_val = clf_cats.predict(self.x_val[labeled_cats_data_val])
             self.fixed_scores['cats_original'][str(classifier) + '_val'] = \
-                get_metrics_cats(self.cats_val, dt_preds_u_cats_val)
-            dt_preds_u_cats_train = clf_cats.predict(self.x_train)
+                get_metrics_cats(self.cats_val[labeled_cats_data_val], dt_preds_u_cats_val)
+            dt_preds_u_cats_train = clf_cats.predict(self.x_train[labeled_cats_data])
             self.fixed_scores['cats_original'][str(classifier) + '_train'] = \
-                get_metrics_cats(self.cats_train, dt_preds_u_cats_train)
+                get_metrics_cats(self.cats_train[labeled_cats_data], dt_preds_u_cats_train)
         orig_scores_cats = self.fixed_scores['cats_original'][str(classifier)]
         orig_scores_cats_val = self.fixed_scores['cats_original'][str(classifier) + '_val']
         orig_scores_cats_train = self.fixed_scores['cats_original'][str(classifier) + '_train']
@@ -148,14 +154,16 @@ class ClassifierMetrics(object):
         # reduced with cats
         clf_reduced_cats = classifier()
         self.logger.info('Fitting %s to reduced data with category labels' % clf_reduced_cats)
-        clf_reduced_cats.fit(self.x_enc_train, self.cats_train)
+        clf_reduced_cats.fit(self.x_enc_train[labeled_cats_data], self.cats_train[labeled_cats_data])
         self._after_fit(clf_reduced_cats)
         dtr_preds_u_cats = clf_reduced_cats.predict(self.x_enc_test)
         reduced_scores_cats = get_metrics_cats(self.cats_test, dtr_preds_u_cats)
-        dtr_preds_u_cats_val = clf_reduced_cats.predict(self.x_enc_val)
-        reduced_scores_cats_val = get_metrics_cats(self.cats_val, dtr_preds_u_cats_val)
-        dtr_preds_u_cats_train = clf_reduced_cats.predict(self.x_enc_train)
-        reduced_scores_cats_train = get_metrics_cats(self.cats_train, dtr_preds_u_cats_train)
+        dtr_preds_u_cats_val = clf_reduced_cats.predict(self.x_enc_val[labeled_cats_data_val])
+        reduced_scores_cats_val = get_metrics_cats(self.cats_val[labeled_cats_data_val],
+                                                   dtr_preds_u_cats_val)
+        dtr_preds_u_cats_train = clf_reduced_cats.predict(self.x_enc_train[labeled_cats_data])
+        reduced_scores_cats_train = get_metrics_cats(self.cats_train[labeled_cats_data],
+                                                     dtr_preds_u_cats_train)
 
         for k in sorted(orig_scores_cats):
             out_cat['metric'].append(k)
@@ -300,6 +308,9 @@ class Aggregator(object):
 
         """
         if categories:
+            labeled_cats_data = self.cats_train > -1
+            labeled_cats_data_val = self.cats_val > -1
+
             def aux_f(labels_scores):  # convert scores to just 0s and 1s
                 labels = np.argmax(labels_scores, axis=1)
                 new_labels = np.zeros(labels_scores.shape)
@@ -307,14 +318,23 @@ class Aggregator(object):
                 return new_labels
             metrics = [get_metrics_cats(data.cats_test,
                                         aux_f(mod.predict_labels(data.x_test))) for mod in self.models]
-            metrics_val = [get_metrics_cats(data.cats_val,
-                                        aux_f(mod.predict_labels(data.x_val))) for mod in self.models]
-            metrics_train = [get_metrics_cats(data.cats_train,
-                                        aux_f(mod.predict_labels(data.x_train))) for mod in self.models]
+            metrics_val = [get_metrics_cats(data.cats_val[labeled_cats_data_val],
+                                        aux_f(mod.predict_labels(data.x_val[labeled_cats_data_val])))
+                           for mod in self.models]
+            metrics_train = [get_metrics_cats(data.cats_train[labeled_cats_data],
+                                        aux_f(mod.predict_labels(data.x_train[labeled_cats_data])))
+                             for mod in self.models]
         else:
+            labeled_data = data.y_train > -1
+            labeled_data_val = data.y_val > -1
+
             metrics = [get_metrics(data.y_test, np.rint(mod.predict_labels(data.x_test))) for mod in self.models]
-            metrics_val = [get_metrics(data.y_val, np.rint(mod.predict_labels(data.x_val))) for mod in self.models]
-            metrics_train = [get_metrics(data.y_train, np.rint(mod.predict_labels(data.x_train))) for mod in self.models]
+            metrics_val = [get_metrics(data.y_val[labeled_data_val],
+                                       np.rint(mod.predict_labels(data.x_val[labeled_data_val])))
+                           for mod in self.models]
+            metrics_train = [get_metrics(data.y_train[labeled_data],
+                                         np.rint(mod.predict_labels(data.x_train[labeled_data])))
+                             for mod in self.models]
         self.scores['own'] = []
         for met, met_val, met_train in zip(metrics, metrics_val, metrics_train):
             new_table = OrderedDict([('metric', []), ('original', []), ('original_val', []), ('original_train', []),

@@ -1,9 +1,9 @@
 import random
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-
 
 random.seed(1337)
 np.random.seed(1337)
@@ -68,24 +68,26 @@ def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
                  "ct_dst_sport_ltm", "ct_dst_src_ltm",
                  "attack_cat", "label"]
 
+    dtypes = {f: 'str' for f in categorical_feats}
+    dtypes['label'] = 'int'
     df = pd.read_csv(filename,
                      index_col=False,
-                     dtype={f: 'str' for f in categorical_feats},
+                     dtype=dtypes,
                      usecols=all_feats
                      )
-    
+
     # replace attack cat names' with correct versions
     df.attack_cat.replace('Backdoors', 'Backdoor', inplace=True)
     df.attack_cat.replace([' Fuzzers', ' Fuzzers '], 'Fuzzers', inplace=True)
     df.attack_cat.replace(' Reconnaissance ', 'Reconnaissance', inplace=True)
     df.attack_cat.replace(' Shellcode ', 'Shellcode', inplace=True)
-    
+
     # add "rate" column
     df['rate'] = ((df.spkts + df.dpkts - 1) / df.dur).replace([np.inf], 0)
-    
+
     # replace empty strings with NaN
     df.ct_ftp_cmd = df.ct_ftp_cmd.replace('\s+', np.nan, regex=True).astype('float')
-    
+
     if cat_only:
         df = df.select_dtypes(exclude=np.number)
     elif num_only:
@@ -98,6 +100,11 @@ def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
         if big_df is not None:
             dummies_frame = pd.get_dummies(big_df)
             ddf = ddf.reindex(columns=dummies_frame.columns, fill_value=0)
+        # put label as last column
+        new_order = list(ddf)
+        new_order.remove('label')
+        new_order.append('label')
+        ddf = ddf.reindex(new_order, axis=1)
     else:
         ddf = df
     return ddf.fillna(value=0)

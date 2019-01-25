@@ -254,7 +254,7 @@ deepsemisup_parser.add_argument('--reconstruct_weight', type=float, default=0.1,
 deepsemisup_parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate')
 deepsemisup_parser.add_argument('--lr_decay', type=float, default=1e-5, help='Decay of learning rate')
 deepsemisup_parser.add_argument('--random_seed', type=int, default=1337, help='Random seed used for training')
-deepsemisup_parser.add_argument('--checkpoint', type=str, default=None,
+deepsemisup_parser.add_argument('--checkpoint', type=str, default='tmp/',
                                 help='Path in which to save the model\'s checkpoints while training.')
 deepsemisup_parser.add_argument('--model_path', type=str, default=None,
                                 help='Path in which to save the model.')
