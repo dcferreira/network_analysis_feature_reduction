@@ -38,7 +38,7 @@ class Data(object):
         maximum = unsup_mat[:, :-11].max(axis=0)
         minimum = unsup_mat[:, :-11].min(axis=0)
 
-        unsup_mat[:, :-11] = (unsup_mat[:, :-11] - minimum) / (maximum - minimum)
+        # unsup_mat[:, :-11] = (unsup_mat[:, :-11] - minimum) / (maximum - minimum)
         self.x_full_train = (x_full_train - minimum) / (maximum - minimum)
         self.x_train = (x_train - minimum) / (maximum - minimum)
         self.x_val = (x_val - minimum) / (maximum - minimum)

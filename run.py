@@ -3,7 +3,7 @@ import argparse
 from collections import OrderedDict
 import json
 from data import Data
-from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA
+from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA, DeepSemiSupNN
 from classifiers import test_model, Aggregator
 
 
@@ -91,6 +91,18 @@ def bin_ae(args):
     mod.std(display_scores=True)
 
 
+def deep_bin_ae(args):
+    data = get_data(args)
+    mod = Aggregator(DeepSemiSupNN, args.number, data, args.size, categories=False,
+                     reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
+                     lr=args.lr, lr_decay=args.lr_decay, random_seed=args.random_seed,
+                     checkpoint_path=args.checkpoint)
+    aggregated_keras(mod, data, args.model_path)
+    mod.get_own_metrics(data, categories=False)
+    mod.mean(display_scores=True)
+    mod.std(display_scores=True)
+
+
 def cats_ae(args):
     data = get_data(args)
     mod = Aggregator(SemisupNN, args.number, data, args.size, categories=True,
@@ -98,6 +110,18 @@ def cats_ae(args):
                      enc_regularizer_weight=args.enc_regularizer_weight,
                      dec_regularizer_weight=args.dec_regularizer_weight,
                      lr=args.lr, lr_decay=args.lr_decay, encoder_regularizer=args.encoder_regularizer)
+    aggregated_keras(mod, data, args.model_path)
+    mod.get_own_metrics(data, categories=True)
+    mod.mean(display_scores=True)
+    mod.std(display_scores=True)
+
+
+def deep_cats_ae(args):
+    data = get_data(args)
+    mod = Aggregator(DeepSemiSupNN, args.number, data, args.size, categories=True,
+                     reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
+                     lr=args.lr, lr_decay=args.lr_decay, random_seed=args.random_seed,
+                     checkpoint_path=args.checkpoint)
     aggregated_keras(mod, data, args.model_path)
     mod.get_own_metrics(data, categories=True)
     mod.mean(display_scores=True)
@@ -221,6 +245,19 @@ parent_parser.add_argument('--encoder_regularizer', type=str, default='l2',
 parent_parser.add_argument('--model_path', type=str, default=None,
                            help='Path in which to save the model.')
 
+# DeepSemiSupNN arguments
+deepsemisup_parser = argparse.ArgumentParser(add_help=False, formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+deepsemisup_parser.add_argument("--reconstruct_loss", type=str, help='One of "binary_crossentropy", "mse".',
+                                default='binary_crossentropy')
+deepsemisup_parser.add_argument('--reconstruct_weight', type=float, default=0.1,
+                                help='Weight of reconstruction loss. Label loss is always 1.0')
+deepsemisup_parser.add_argument('--lr', type=float, default=1e-3, help='Learning rate')
+deepsemisup_parser.add_argument('--lr_decay', type=float, default=1e-5, help='Decay of learning rate')
+deepsemisup_parser.add_argument('--random_seed', type=int, default=1337, help='Random seed used for training')
+deepsemisup_parser.add_argument('--checkpoint', type=str, default=None,
+                                help='Path in which to save the model\'s checkpoints while training.')
+deepsemisup_parser.add_argument('--model_path', type=str, default=None,
+                                help='Path in which to save the model.')
 
 # unsup_ae
 parser_unsup_ae = subparsers.add_parser('unsup_ae', parents=[parent_parser],
@@ -230,20 +267,29 @@ parser_unsup_ae.set_defaults(func=unsup_ae)
 
 # sup_cats_ae
 parser_sup_cats_ae = subparsers.add_parser('sup_cats_ae', parents=[parent_parser],
-                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                           formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser_sup_cats_ae.set_defaults(func=sup_cats_ae)
 
 
 # bin_ae
 parser_bin_ae = subparsers.add_parser('bin_ae', parents=[parent_parser],
-                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser_bin_ae.set_defaults(func=bin_ae)
 
+# deep_bin_ae
+parser_bin_ae = subparsers.add_parser('deep_bin_ae', parents=[deepsemisup_parser],
+                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_bin_ae.set_defaults(func=deep_bin_ae)
 
 # cats_ae
 parser_cats_ae = subparsers.add_parser('cats_ae', parents=[parent_parser],
-                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+                                       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser_cats_ae.set_defaults(func=cats_ae)
+
+# deep_cats_ae
+parser_cats_ae = subparsers.add_parser('deep_cats_ae', parents=[deepsemisup_parser],
+                                       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_cats_ae.set_defaults(func=deep_cats_ae)
 
 
 # tsne
