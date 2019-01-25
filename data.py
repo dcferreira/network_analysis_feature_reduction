@@ -14,9 +14,11 @@ class Data(object):
     def __init__(self, all_data, training, testing):
         big_df = read_df(all_data)
         unsup = big_df
-        train = read_df(training, big_df).values
-        test = read_df(testing, big_df).values
-        self.columns = big_df.columns
+        train_df = read_df(training, big_df)
+        test_df = read_df(testing, big_df)
+        self.columns = train_df.columns
+        train = train_df.values
+        test = test_df.values
 
         # use the full train set with classifiers (they use crossvalidation)
         x_full_train, self.y_full_train, self.cats_full_train = (train[:, :-11],
@@ -45,10 +47,10 @@ class Data(object):
         self.x_test = (x_test - minimum) / (maximum - minimum)
         self.y_train, self.y_test, self.y_val = y_train, y_test, y_val
         self.cats_nr_full_train, self.cats_nr_train, self.cats_nr_test, self.cats_nr_val = (
-            [np.argmax(x) for x in self.cats_full_train],
-            [np.argmax(x) for x in cats_train],
-            [np.argmax(x) for x in cats_test],
-            [np.argmax(x) for x in cats_val]
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in self.cats_full_train],
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_train],
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_test],
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_val]
         )
         self.cats_train, self.cats_test, self.cats_val = cats_train, cats_test, cats_val
 
@@ -98,13 +100,46 @@ def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
     if onehot:
         ddf = pd.get_dummies(df)
         if big_df is not None:
-            dummies_frame = pd.get_dummies(big_df)
-            ddf = ddf.reindex(columns=dummies_frame.columns, fill_value=0)
-        # put label as last column
-        new_order = list(ddf)
-        new_order.remove('label')
-        new_order.append('label')
-        ddf = ddf.reindex(new_order, axis=1)
+            for v in list(ddf):
+                assert v in dummy_variable_list
+        ddf = ddf.reindex(columns=dummy_variable_list, fill_value=0)
     else:
         ddf = df
     return ddf.fillna(value=0)
+
+
+dummy_variable_list = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dloss', 'sload', 'dload', 'spkts', 'dpkts',
+                       'swin', 'dwin', 'stcpb', 'dtcpb', 'smean', 'dmean', 'trans_depth', 'response_body_len', 'sjit',
+                       'djit', 'sinpkt', 'dinpkt', 'tcprtt', 'synack', 'ackdat', 'ct_state_ttl', 'ct_flw_http_mthd',
+                       'ct_ftp_cmd', 'ct_srv_src', 'ct_srv_dst', 'ct_dst_ltm', 'ct_src_ltm', 'ct_src_dport_ltm',
+                       'ct_dst_sport_ltm', 'ct_dst_src_ltm', 'rate', 'proto_3pc', 'proto_a/n',
+                       'proto_aes-sp3-d', 'proto_any', 'proto_argus', 'proto_aris', 'proto_arp', 'proto_ax.25',
+                       'proto_bbn-rcc', 'proto_bna', 'proto_br-sat-mon', 'proto_cbt', 'proto_cftp', 'proto_chaos',
+                       'proto_compaq-peer', 'proto_cphb', 'proto_cpnx', 'proto_crtp', 'proto_crudp', 'proto_dcn',
+                       'proto_ddp', 'proto_ddx', 'proto_dgp', 'proto_egp', 'proto_eigrp', 'proto_emcon', 'proto_encap',
+                       'proto_esp', 'proto_etherip', 'proto_fc', 'proto_fire', 'proto_ggp', 'proto_gmtp', 'proto_gre',
+                       'proto_hmp', 'proto_i-nlsp', 'proto_iatp', 'proto_ib', 'proto_icmp', 'proto_idpr',
+                       'proto_idpr-cmtp', 'proto_idrp', 'proto_ifmp', 'proto_igmp', 'proto_igp', 'proto_il', 'proto_ip',
+                       'proto_ipcomp', 'proto_ipcv', 'proto_ipip', 'proto_iplt', 'proto_ipnip', 'proto_ippc',
+                       'proto_ipv6', 'proto_ipv6-frag', 'proto_ipv6-no', 'proto_ipv6-opts', 'proto_ipv6-route',
+                       'proto_ipx-n-ip', 'proto_irtp', 'proto_isis', 'proto_iso-ip', 'proto_iso-tp4', 'proto_kryptolan',
+                       'proto_l2tp', 'proto_larp', 'proto_leaf-1', 'proto_leaf-2', 'proto_merit-inp', 'proto_mfe-nsp',
+                       'proto_mhrp', 'proto_micp', 'proto_mobile', 'proto_mtp', 'proto_mux', 'proto_narp',
+                       'proto_netblt', 'proto_nsfnet-igp', 'proto_nvp', 'proto_ospf', 'proto_pgm', 'proto_pim',
+                       'proto_pipe', 'proto_pnni', 'proto_pri-enc', 'proto_prm', 'proto_ptp', 'proto_pup', 'proto_pvp',
+                       'proto_qnx', 'proto_rdp', 'proto_rsvp', 'proto_rtp', 'proto_rvd', 'proto_sat-expak',
+                       'proto_sat-mon', 'proto_sccopmce', 'proto_scps', 'proto_sctp', 'proto_sdrp', 'proto_secure-vmtp',
+                       'proto_sep', 'proto_skip', 'proto_sm', 'proto_smp', 'proto_snp', 'proto_sprite-rpc', 'proto_sps',
+                       'proto_srp', 'proto_st2', 'proto_stp', 'proto_sun-nd', 'proto_swipe', 'proto_tcf', 'proto_tcp',
+                       'proto_tlsp', 'proto_tp++', 'proto_trunk-1', 'proto_trunk-2', 'proto_ttp', 'proto_udp',
+                       'proto_udt', 'proto_unas', 'proto_uti', 'proto_vines', 'proto_visa', 'proto_vmtp', 'proto_vrrp',
+                       'proto_wb-expak', 'proto_wb-mon', 'proto_wsn', 'proto_xnet', 'proto_xns-idp', 'proto_xtp',
+                       'proto_zero', 'state_ACC', 'state_CLO', 'state_CON', 'state_ECO', 'state_ECR', 'state_FIN',
+                       'state_INT', 'state_MAS', 'state_PAR', 'state_REQ', 'state_RST', 'state_TST', 'state_TXD',
+                       'state_URH', 'state_URN', 'state_no', 'service_-', 'service_dhcp', 'service_dns', 'service_ftp',
+                       'service_ftp-data', 'service_http', 'service_irc', 'service_pop3', 'service_radius',
+                       'service_smtp', 'service_snmp', 'service_ssh', 'service_ssl', 'is_sm_ips_ports_0',
+                       'is_sm_ips_ports_1', 'is_ftp_login_0', 'is_ftp_login_1', 'is_ftp_login_2', 'is_ftp_login_4',
+                       'attack_cat_Analysis', 'attack_cat_Backdoor', 'attack_cat_DoS', 'attack_cat_Exploits',
+                       'attack_cat_Fuzzers', 'attack_cat_Generic', 'attack_cat_Reconnaissance', 'attack_cat_Shellcode',
+                       'attack_cat_Worms', 'attack_cat_Normal', 'label']

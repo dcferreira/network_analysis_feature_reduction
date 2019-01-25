@@ -455,7 +455,8 @@ class DeepSemiSupNN(BaseModel):
 
     def select_labels(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         if self.categories:
-            selection = y_true.sum(1) > 0.99
+            selection = np.linalg.norm(y_true, axis=1) > 1e-6  # if belongs to some class
+            selection = torch.ByteTensor(selection.astype('uint8'))
         else:
             selection = y_true > -1
         selected_pred = y_pred[selection]
@@ -468,11 +469,11 @@ class DeepSemiSupNN(BaseModel):
         selected_pred, selected_true = self.select_labels(y_pred, y_true)
         if self.categories:
             label_loss = F.cross_entropy(selected_pred,  # predictions are arrays of size #n_class
-                                         selected_true.max(1)[1]).mean()
+                                         selected_true.max(1)[1])
         else:
-            label_loss = F.binary_cross_entropy(selected_pred, selected_true).mean()
+            label_loss = F.binary_cross_entropy(selected_pred, selected_true)
 
-        reconstruction_loss = self.reconstruct_loss(reconstruct, input_data).mean()
+        reconstruction_loss = self.reconstruct_loss(reconstruct, input_data)
 
         return label_loss + self.reconstruct_weight * reconstruction_loss, label_loss, reconstruction_loss
 
@@ -496,7 +497,7 @@ class DeepSemiSupNN(BaseModel):
         selected_pred, selected_true = self.select_labels(y_pred, y_true)
         if self.categories:
             predicted_labels = np.argmax(selected_pred.detach().numpy(), axis=1)
-            true_nr = np.argmax(y_true.numpy(), axis=1)
+            true_nr = np.argmax(selected_true.numpy(), axis=1)
         else:
             predicted_labels = np.round(selected_pred.view(-1).detach().numpy())
             true_nr = selected_true.numpy()
@@ -505,7 +506,7 @@ class DeepSemiSupNN(BaseModel):
         total = len(selected_pred)
         return right, total
 
-    def train(self, n_epochs=1500, verbose=True):
+    def train(self, n_epochs=300, verbose=True):
         train_data = torch.utils.data.TensorDataset(
             torch.Tensor(self.data.x_train),
             torch.Tensor(self.data.cats_train) if self.categories else torch.Tensor(self.data.y_train)
@@ -518,7 +519,7 @@ class DeepSemiSupNN(BaseModel):
         )
         val_loader = torch.utils.data.DataLoader(val_data, batch_size=1000, shuffle=False)
 
-        best_val_accuracy = 0
+        best_val_accuracy = -1
         best_epoch = None
         for epoch in range(n_epochs):
             total_loss = 0
@@ -556,8 +557,9 @@ class DeepSemiSupNN(BaseModel):
                 best_epoch = epoch
                 self.save_model(self.checkpoint_path)
 
-        print(f'\nFinished training, restoring checkpoint from epoch {best_epoch}...')
-        self.load_model(self.checkpoint_path)
+        if best_epoch is not None:
+            print(f'\nFinished training, restoring checkpoint from epoch {best_epoch}...')
+            self.load_model(self.checkpoint_path)
 
     def evaluate(self, val_loader: torch.utils.data.DataLoader) -> (float, float, float, float):
         self.encoder.eval()
