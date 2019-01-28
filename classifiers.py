@@ -308,8 +308,8 @@ class Aggregator(object):
 
         """
         if categories:
-            labeled_cats_data = self.cats_train > -1
-            labeled_cats_data_val = self.cats_val > -1
+            labeled_cats_data = data.cats_train > -1
+            labeled_cats_data_val = data.cats_val > -1
 
             def aux_f(labels_scores):  # convert scores to just 0s and 1s
                 labels = np.argmax(labels_scores, axis=1)
