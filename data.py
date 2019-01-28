@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 
 
@@ -49,6 +51,21 @@ class Data(ABC):
     def cats_test(self):
         pass
 
+    @property
+    @abstractmethod
+    def cats_nr_train(self):
+        pass
+
+    @property
+    @abstractmethod
+    def cats_nr_val(self):
+        pass
+
+    @property
+    @abstractmethod
+    def cats_nr_test(self):
+        pass
+
 
 class UNSW15Data(Data):
     def __init__(self, all_data, training, testing):
@@ -86,7 +103,7 @@ class UNSW15Data(Data):
         self._x_val = (x_val - minimum) / (maximum - minimum)
         self._x_test = (x_test - minimum) / (maximum - minimum)
         self._y_train, self._y_test, self._y_val = y_train, y_test, y_val
-        self.cats_nr_full_train, self.cats_nr_train, self.cats_nr_test, self.cats_nr_val = (
+        self.cats_nr_full_train, self._cats_nr_train, self._cats_nr_test, self._cats_nr_val = (
             [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in self.cats_full_train],
             [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_train],
             [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_test],
@@ -129,6 +146,18 @@ class UNSW15Data(Data):
     @property
     def cats_test(self):
         return self._cats_test
+
+    @property
+    def cats_nr_train(self):
+        return self._cats_nr_train
+
+    @property
+    def cats_nr_val(self):
+        return self._cats_nr_val
+
+    @property
+    def cats_nr_test(self):
+        return self._cats_nr_test
 
 
 def read_unsw_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
@@ -219,3 +248,141 @@ dummy_variable_list = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dlos
                        'attack_cat_Analysis', 'attack_cat_Backdoor', 'attack_cat_DoS', 'attack_cat_Exploits',
                        'attack_cat_Fuzzers', 'attack_cat_Generic', 'attack_cat_Reconnaissance', 'attack_cat_Shellcode',
                        'attack_cat_Worms', 'attack_cat_Normal', 'label']
+
+
+class SemisupData(Data):
+    def __init__(self, train: str, test: str, unsup: str=None, normalization: str='standard'):
+        """
+
+        Args:
+            train: path to train file
+            test: path to test file
+            unsup: path to file without labels, used for semi-supervised training (labels will be -1, attack cats NaN).
+            This will be mixed with the training set.
+            normalization: one of 'standard' (subtract mean and divide by stdev) or 'scaling' (squash input data
+            to [0, 1]).
+        """
+        droppable = ['flowStartMicroseconds', 'sourceIPAddress', 'destinationIPAddress', 'sourceTransportPort',
+                     'destinationTransportPort', 'protocolIdentifier']
+        train_df = pd.read_csv(train).drop(droppable, axis=1)
+        test_df = pd.read_csv(test).drop(droppable, axis=1)
+        unsup_df = pd.read_csv(unsup).drop(droppable, axis=1)
+
+        self.columns = train_df.columns
+        assert set(test_df.columns) == set(self.columns)
+        assert set(unsup_df.columns) == set(self.columns)
+
+        # get dummy variables
+        concatenation = pd.concat((train_df, test_df, unsup_df), copy=False)
+        dummy_columns = pd.get_dummies(concatenation).columns
+
+        train_df = pd.get_dummies(train_df).reindex(columns=dummy_columns, fill_value=0)
+        test_df = pd.get_dummies(test_df).reindex(columns=dummy_columns, fill_value=0)
+        unsup_df = pd.get_dummies(unsup_df).reindex(columns=dummy_columns, fill_value=0)
+
+        # separate data from labels
+        nr_non_categorical = len([c for c in list(train_df) if c in self.columns])
+        train_array, train_y, train_cats, train_cats_nr = self.split_labels(train_df)
+        test_array, test_y, test_cats, test_cats_nr = self.split_labels(test_df)
+        unsup_array, unsup_y, unsup_cats, unsup_cats_nr = self.split_labels(unsup_df)
+
+        # normalize only the non-dummy variables (keep dummy at 0 and 1)
+        stacked = np.vstack((train_array[:, :nr_non_categorical],
+                             test_array[:, :nr_non_categorical],
+                             unsup_array[:, :nr_non_categorical]))
+        if normalization == 'standard':
+            sub_value = stacked.mean(axis=0)
+            div_value = stacked.std(axis=0)
+        elif normalization == 'scaling':
+            sub_value = stacked.min(axis=0)
+            div_value = stacked.max(axis=0) - sub_value
+        else:
+            raise NotImplementedError(f'Choose one normalization in [standard, scaling]. Received: {normalization}')
+        div_value[div_value == 0] = 1.  # avoid division by 0
+        train_array[:, :nr_non_categorical] = (train_array[:, :nr_non_categorical] - sub_value) / div_value
+        test_array[:, :nr_non_categorical] = (test_array[:, :nr_non_categorical] - sub_value) / div_value
+        unsup_array[:, :nr_non_categorical] = (unsup_array[:, :nr_non_categorical] - sub_value) / div_value
+
+        # mix labeled and unlabeled
+        mixed_train = np.vstack((train_array, unsup_array))
+        mixed_train_y = np.hstack((train_y, unsup_y))
+        mixed_train_cats = np.vstack((train_cats, unsup_cats))
+        mixed_train_cats_nr = np.hstack((train_cats_nr, unsup_cats_nr))
+
+        # train/val split
+        x_train, x_val, y_train, y_val, cats_train, cats_val, cats_nr_train, cats_nr_val = train_test_split(
+            mixed_train, mixed_train_y, mixed_train_cats, mixed_train_cats_nr,
+            test_size=0.2, shuffle=True, random_state=1337
+        )
+        self._x_train, self._x_val, self._x_test = x_train, x_val, test_array
+        self._y_train, self._y_val, self._y_test = y_train, y_val, test_y
+        self._cats_train, self._cats_val, self._cats_test = cats_train, cats_val, test_cats
+        self._cats_nr_train, self._cats_nr_val, self._cats_nr_test = cats_nr_train, cats_nr_val, test_cats_nr
+
+        pass
+
+    def split_labels(self, df: pd.DataFrame) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+        possible_categories = ['attack_cat_Analysis', 'attack_cat_Backdoor', 'attack_cat_DoS', 'attack_cat_Exploits',
+                               'attack_cat_Fuzzers', 'attack_cat_Generic', 'attack_cat_Reconnaissance',
+                               'attack_cat_Shellcode', 'attack_cat_Worms', 'attack_cat_Normal']
+        labels = df.Label
+        cats = df.loc[:, possible_categories]
+
+        df.drop(['Label'], axis=1, inplace=True)
+        df.drop(possible_categories, axis=1, inplace=True)
+
+        cats_nr = np.array([np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats.values])
+
+        return df.fillna(0).values, labels.values, cats.values, cats_nr
+
+    @property
+    def x_train(self):
+        return self._x_train
+
+    @property
+    def x_val(self):
+        return self._x_val
+
+    @property
+    def x_test(self):
+        return self._x_test
+
+    @property
+    def y_train(self):
+        return self._y_train
+
+    @property
+    def y_val(self):
+        return self._y_val
+
+    @property
+    def y_test(self):
+        return self._y_test
+
+    @property
+    def cats_train(self):
+        return self._cats_train
+
+    @property
+    def cats_val(self):
+        return self._cats_val
+
+    @property
+    def cats_test(self):
+        return self._cats_test
+
+    @property
+    def cats_nr_train(self):
+        return self._cats_nr_train
+
+    @property
+    def cats_nr_val(self):
+        return self._cats_nr_val
+
+    @property
+    def cats_nr_test(self):
+        return self._cats_nr_test
+
+
+if __name__ == '__main__':
+    data = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', 'small_caia/unsup.csv', normalization='scaling')
