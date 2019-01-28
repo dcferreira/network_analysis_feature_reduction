@@ -266,11 +266,12 @@ class SemisupData(Data):
                      'destinationTransportPort', 'protocolIdentifier']
         train_df = pd.read_csv(train).drop(droppable, axis=1)
         test_df = pd.read_csv(test).drop(droppable, axis=1)
-        unsup_df = pd.read_csv(unsup).drop(droppable, axis=1)
+        unsup_df = pd.read_csv(unsup).drop(droppable, axis=1) if unsup is not None \
+            else None
 
         self.columns = train_df.columns
         assert set(test_df.columns) == set(self.columns)
-        assert set(unsup_df.columns) == set(self.columns)
+        assert unsup_df is None or set(unsup_df.columns) == set(self.columns)
 
         # get dummy variables
         concatenation = pd.concat((train_df, test_df, unsup_df), copy=False)
@@ -278,7 +279,8 @@ class SemisupData(Data):
 
         train_df = pd.get_dummies(train_df).reindex(columns=dummy_columns, fill_value=0)
         test_df = pd.get_dummies(test_df).reindex(columns=dummy_columns, fill_value=0)
-        unsup_df = pd.get_dummies(unsup_df).reindex(columns=dummy_columns, fill_value=0)
+        if unsup is not None:
+            unsup_df = pd.get_dummies(unsup_df).reindex(columns=dummy_columns, fill_value=0)
 
         # separate data from labels
         nr_non_categorical = len([c for c in list(train_df) if c in self.columns])
@@ -287,9 +289,12 @@ class SemisupData(Data):
         unsup_array, unsup_y, unsup_cats, unsup_cats_nr = self.split_labels(unsup_df)
 
         # normalize only the non-dummy variables (keep dummy at 0 and 1)
-        stacked = np.vstack((train_array[:, :nr_non_categorical],
-                             test_array[:, :nr_non_categorical],
-                             unsup_array[:, :nr_non_categorical]))
+        if unsup is None:
+            stacked = np.vstack((train_array[:, :nr_non_categorical], test_array[:, :nr_non_categorical]))
+        else:
+            stacked = np.vstack((train_array[:, :nr_non_categorical],
+                                 test_array[:, :nr_non_categorical],
+                                 unsup_array[:, :nr_non_categorical]))
         if normalization == 'standard':
             sub_value = stacked.mean(axis=0)
             div_value = stacked.std(axis=0)
@@ -301,13 +306,18 @@ class SemisupData(Data):
         div_value[div_value == 0] = 1.  # avoid division by 0
         train_array[:, :nr_non_categorical] = (train_array[:, :nr_non_categorical] - sub_value) / div_value
         test_array[:, :nr_non_categorical] = (test_array[:, :nr_non_categorical] - sub_value) / div_value
-        unsup_array[:, :nr_non_categorical] = (unsup_array[:, :nr_non_categorical] - sub_value) / div_value
+        if unsup is not None:
+            unsup_array[:, :nr_non_categorical] = (unsup_array[:, :nr_non_categorical] - sub_value) / div_value
 
         # mix labeled and unlabeled
-        mixed_train = np.vstack((train_array, unsup_array))
-        mixed_train_y = np.hstack((train_y, unsup_y))
-        mixed_train_cats = np.vstack((train_cats, unsup_cats))
-        mixed_train_cats_nr = np.hstack((train_cats_nr, unsup_cats_nr))
+        if unsup is not None:
+            mixed_train = np.vstack((train_array, unsup_array))
+            mixed_train_y = np.hstack((train_y, unsup_y))
+            mixed_train_cats = np.vstack((train_cats, unsup_cats))
+            mixed_train_cats_nr = np.hstack((train_cats_nr, unsup_cats_nr))
+        else:
+            mixed_train, mixed_train_y, mixed_train_cats, mixed_train_cats_nr = train_array, train_y, \
+                                                                                train_cats, train_cats_nr
 
         # train/val split
         x_train, x_val, y_train, y_val, cats_train, cats_val, cats_nr_train, cats_nr_val = train_test_split(
@@ -321,7 +331,10 @@ class SemisupData(Data):
 
         pass
 
-    def split_labels(self, df: pd.DataFrame) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+    @staticmethod
+    def split_labels(df: pd.DataFrame) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
+        if df is None:
+            return [np.array([])] * 4
         possible_categories = ['attack_cat_Analysis', 'attack_cat_Backdoor', 'attack_cat_DoS', 'attack_cat_Exploits',
                                'attack_cat_Fuzzers', 'attack_cat_Generic', 'attack_cat_Reconnaissance',
                                'attack_cat_Shellcode', 'attack_cat_Worms', 'attack_cat_Normal']
@@ -386,3 +399,4 @@ class SemisupData(Data):
 
 if __name__ == '__main__':
     data = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', 'small_caia/unsup.csv', normalization='scaling')
+    data = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', None)
