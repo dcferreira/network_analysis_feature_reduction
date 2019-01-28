@@ -18,7 +18,7 @@ RUN echo "srcip,sport,dstip,dsport,proto,state,dur,sbytes,dbytes,sttl,dttl,sloss
      cat /tmp/UNSW-NB15_4.csv >> UNSW-NB15_all.csv
 
 # install dependencies
-RUN pip3 install tensorflow keras tabulate sklearn pandas ipython sklearn-deap bokeh==0.13.0
+RUN pip3 install tensorflow keras tabulate sklearn pandas ipython sklearn-deap bokeh==0.13.0 torch torchvision
 
 # add code
 ADD *.py ./
