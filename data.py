@@ -10,7 +10,11 @@ np.random.seed(1337)
 tf.set_random_seed(1337)
 
 
-class Data(object):
+class Data:
+    pass
+
+
+class UNSW15Data(Data):
     def __init__(self, all_data, training, testing):
         big_df = read_df(all_data)
         unsup = big_df

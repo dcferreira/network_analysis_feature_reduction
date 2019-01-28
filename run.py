@@ -2,15 +2,15 @@ import os
 import argparse
 from collections import OrderedDict
 import json
-from data import Data
+from data import UNSW15Data
 from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA, DeepSemiSupNN
 from classifiers import test_model, Aggregator
 
 
 def get_data(args):
-    return Data(args.datapath + os.sep + 'UNSW-NB15_all.csv',
-                args.datapath + os.sep + 'UNSW_NB15_training-set.csv',
-                args.datapath + os.sep + 'UNSW_NB15_testing-set.csv')
+    return UNSW15Data(args.datapath + os.sep + 'UNSW-NB15_all.csv',
+                      args.datapath + os.sep + 'UNSW_NB15_training-set.csv',
+                      args.datapath + os.sep + 'UNSW_NB15_testing-set.csv')
 
 
 def pca(args):
