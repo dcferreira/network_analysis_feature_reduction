@@ -1,14 +1,6 @@
-import random
 from abc import ABC, abstractmethod
 
-import numpy as np
-import pandas as pd
-import tensorflow as tf
 from sklearn.model_selection import train_test_split
-
-random.seed(1337)
-np.random.seed(1337)
-tf.set_random_seed(1337)
 
 
 class Data(ABC):

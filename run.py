@@ -1,10 +1,15 @@
-import os
 import argparse
-from collections import OrderedDict
 import json
+import os
+import random
+from collections import OrderedDict
+
+import numpy as np
+import tensorflow as tf
+
+from classifiers import Aggregator
 from data import UNSW15Data
 from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA, DeepSemiSupNN
-from classifiers import test_model, Aggregator
 
 
 def get_data(args):
@@ -334,5 +339,9 @@ parser_weights.set_defaults(func=get_weights)
 
 
 if __name__ == '__main__':
+    random.seed(1337)
+    np.random.seed(1337)
+    tf.set_random_seed(1337)
+
     args = parser.parse_args()
     args.func(args)
