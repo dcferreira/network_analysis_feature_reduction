@@ -1,4 +1,5 @@
 import random
+from abc import ABC, abstractmethod
 
 import numpy as np
 import pandas as pd
@@ -10,16 +11,59 @@ np.random.seed(1337)
 tf.set_random_seed(1337)
 
 
-class Data:
-    pass
+class Data(ABC):
+    @property
+    @abstractmethod
+    def x_train(self):
+        pass
+
+    @property
+    @abstractmethod
+    def x_val(self):
+        pass
+
+    @property
+    @abstractmethod
+    def x_test(self):
+        pass
+
+    @property
+    @abstractmethod
+    def y_train(self):
+        pass
+
+    @property
+    @abstractmethod
+    def y_val(self):
+        pass
+
+    @property
+    @abstractmethod
+    def y_test(self):
+        pass
+
+    @property
+    @abstractmethod
+    def cats_train(self):
+        pass
+
+    @property
+    @abstractmethod
+    def cats_val(self):
+        pass
+
+    @property
+    @abstractmethod
+    def cats_test(self):
+        pass
 
 
 class UNSW15Data(Data):
     def __init__(self, all_data, training, testing):
-        big_df = read_df(all_data)
+        big_df = read_unsw_df(all_data)
         unsup = big_df
-        train_df = read_df(training, big_df)
-        test_df = read_df(testing, big_df)
+        train_df = read_unsw_df(training, big_df)
+        test_df = read_unsw_df(testing, big_df)
         self.columns = train_df.columns
         train = train_df.values
         test = test_df.values
@@ -46,20 +90,56 @@ class UNSW15Data(Data):
 
         # unsup_mat[:, :-11] = (unsup_mat[:, :-11] - minimum) / (maximum - minimum)
         self.x_full_train = (x_full_train - minimum) / (maximum - minimum)
-        self.x_train = (x_train - minimum) / (maximum - minimum)
-        self.x_val = (x_val - minimum) / (maximum - minimum)
-        self.x_test = (x_test - minimum) / (maximum - minimum)
-        self.y_train, self.y_test, self.y_val = y_train, y_test, y_val
+        self._x_train = (x_train - minimum) / (maximum - minimum)
+        self._x_val = (x_val - minimum) / (maximum - minimum)
+        self._x_test = (x_test - minimum) / (maximum - minimum)
+        self._y_train, self._y_test, self._y_val = y_train, y_test, y_val
         self.cats_nr_full_train, self.cats_nr_train, self.cats_nr_test, self.cats_nr_val = (
             [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in self.cats_full_train],
             [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_train],
             [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_test],
             [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_val]
         )
-        self.cats_train, self.cats_test, self.cats_val = cats_train, cats_test, cats_val
+        self._cats_train, self._cats_test, self._cats_val = cats_train, cats_test, cats_val
+
+    @property
+    def x_train(self):
+        return self._x_train
+
+    @property
+    def x_val(self):
+        return self._x_val
+
+    @property
+    def x_test(self):
+        return self._x_test
+
+    @property
+    def y_train(self):
+        return self._y_train
+
+    @property
+    def y_val(self):
+        return self._y_val
+
+    @property
+    def y_test(self):
+        return self._y_test
+
+    @property
+    def cats_train(self):
+        return self._cats_train
+
+    @property
+    def cats_val(self):
+        return self._cats_val
+
+    @property
+    def cats_test(self):
+        return self._cats_test
 
 
-def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
+def read_unsw_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
     categorical_feats = ['proto', 'state', 'service', 'is_sm_ips_ports',
                          'is_ftp_login', 'attack_cat', 'label']
     all_feats = ["proto", "state", "dur", "sbytes", "dbytes",
@@ -105,7 +185,7 @@ def read_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
         ddf = pd.get_dummies(df)
         if big_df is not None:
             for v in list(ddf):
-                assert v in dummy_variable_list
+                assert v in dummy_variable_list, v
         ddf = ddf.reindex(columns=dummy_variable_list, fill_value=0)
     else:
         ddf = df

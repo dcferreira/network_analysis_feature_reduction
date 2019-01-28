@@ -238,7 +238,6 @@ class ClustererMetrics(ClassifierMetrics):
             out['reduced_val'].append(reduced_scores_val[k])
             out['reduced_train'].append(reduced_scores_train[k])
 
-
         if display_scores:
             print('binary class:')
             if is_interactive():
@@ -256,7 +255,16 @@ class ClustererMetrics(ClassifierMetrics):
 
 class Aggregator(object):
     def __init__(self, model_class, number, *args, **kwargs):
-        self.models = [model_class(*args, **kwargs) for _ in range(number)]
+        if 'random_seed' in kwargs:  # give different seeds to the models
+            np.random.seed(kwargs['random_seed'])
+            random_seeds = np.random.random_integers(0, 2**32, number)
+            self.models = []
+            for seed in random_seeds:
+                kwargs['random_seed'] = seed
+                self.models.append(model_class(*args, **kwargs))
+        else:
+            self.models = [model_class(*args, **kwargs) for _ in range(number)]
+
         self.metrics_classifiers = None
         self.scores = None
         self.histories = None
@@ -308,8 +316,8 @@ class Aggregator(object):
 
         """
         if categories:
-            labeled_cats_data = data.cats_train > -1
-            labeled_cats_data_val = data.cats_val > -1
+            labeled_cats_data = np.array(data.cats_nr_train) > -1
+            labeled_cats_data_val = np.array(data.cats_nr_val) > -1
 
             def aux_f(labels_scores):  # convert scores to just 0s and 1s
                 labels = np.argmax(labels_scores, axis=1)
@@ -348,13 +356,14 @@ class Aggregator(object):
                 new_table['reduced_val'].append(met_val[k])
                 new_table['reduced_train'].append(met_train[k])
             if categories:
-                self.scores['own'].append((OrderedDict([('metric', []), ('original', []), ('original_val', []), ('original_train', []),
-                                                        ('reduced', []), ('reduced_val', []), ('reduced_train', [])]),
+                self.scores['own'].append((OrderedDict([
+                    ('metric', []), ('original', []), ('original_val', []), ('original_train', []),
+                    ('reduced', []), ('reduced_val', []), ('reduced_train', [])]),
                                            new_table))
             else:
-                self.scores['own'].append((new_table,
-                                           OrderedDict([('metric', []), ('original', []), ('original_val', []), ('original_train', []),
-                                                        ('reduced', []), ('reduced_val', []), ('reduced_train', [])])))
+                self.scores['own'].append((new_table, OrderedDict([
+                    ('metric', []), ('original', []), ('original_val', []), ('original_train', []),
+                    ('reduced', []), ('reduced_val', []), ('reduced_train', [])])))
 
         return self.scores
 

@@ -5,7 +5,7 @@ from bokeh.palettes import Category10
 from sklearn.tree import DecisionTreeClassifier
 try:
     from models import SemisupNN
-    from data import Data
+    from data import UNSW15Data
 except ImportError:
     raise ImportError('Error importing! Add the root of the repository to your PYTHONPATH and try again.')
 
@@ -13,7 +13,7 @@ except ImportError:
 AE_PARAM = '1e-1'
 AE_MODEL_PATH = '../experiments/cats_ae/run_mse_recweights_%s/0' % AE_PARAM
 
-data = Data('../UNSW-NB15_all.csv', '../UNSW_NB15_training-set.csv', '../UNSW_NB15_testing-set.csv')
+data = UNSW15Data('../UNSW-NB15_all.csv', '../UNSW_NB15_training-set.csv', '../UNSW_NB15_testing-set.csv')
 cats_ae = SemisupNN(data, 2, categories=True, reconstruct_weight=float(AE_PARAM), reconstruct_loss='mse')
 cats_ae.load_model(AE_MODEL_PATH)
 
