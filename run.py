@@ -8,14 +8,23 @@ import numpy as np
 import tensorflow as tf
 
 from classifiers import Aggregator
-from data import UNSW15Data
+from data import UNSW15Data, SemisupData
 from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA, DeepSemiSupNN
 
 
 def get_data(args):
-    return UNSW15Data(args.datapath + os.sep + 'UNSW-NB15_all.csv',
-                      args.datapath + os.sep + 'UNSW_NB15_training-set.csv',
-                      args.datapath + os.sep + 'UNSW_NB15_testing-set.csv')
+    if args.datatype == 'semisup':
+        unsup = None
+        if os.path.exists(os.path.join(args.datapath, 'unsup.csv')):
+            unsup = os.path.join(args.datapath, 'unsup.csv')
+        return SemisupData(os.path.join(args.datapath, 'train.csv'),
+                           os.path.join(args.datapath, 'test.csv'),
+                           unsup,
+                           )
+    else:
+        return UNSW15Data(args.datapath + os.sep + 'UNSW-NB15_all.csv',
+                          args.datapath + os.sep + 'UNSW_NB15_training-set.csv',
+                          args.datapath + os.sep + 'UNSW_NB15_testing-set.csv')
 
 
 def pca(args):
@@ -212,9 +221,13 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 
 subparsers = parser.add_subparsers(dest='method', help='Feature reduction method to use.')
 subparsers.required = True
+parser.add_argument('datatype', type=str, help='Data type to use. One of [\'unsw15\', \'semisup\'].')
 parser.add_argument('datapath', type=str, help='Path for data.\n'
-'This path should be a directory that includes the files: "UNSW-NB15_all.csv", "UNSW_NB15_training-set.csv", ' 
-'and "UNSW_NB15_testing-set.csv".')
+                                               'This path should be a directory that includes the files: '
+                                               '"UNSW-NB15_all.csv", "UNSW_NB15_training-set.csv", '
+                                               'and "UNSW_NB15_testing-set.csv" if datatype is \'unsw15\'.\n'
+                                               'Otherwise it should include "train.csv" and "test.csv", and optionally'
+                                               'may include "unsup.csv".')
 parser.add_argument('--size', type=int, default=2, help='Reduce data to this dimension')
 parser.add_argument('--number', type=int, default=5, help='Number of models used to average')
 parser.add_argument('--train', type=json.loads, default={},
