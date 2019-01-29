@@ -17,6 +17,8 @@ RUN echo "srcip,sport,dstip,dsport,proto,state,dur,sbytes,dbytes,sttl,dttl,sloss
      cat /tmp/UNSW-NB15_3.csv >> UNSW-NB15_all.csv && \
      cat /tmp/UNSW-NB15_4.csv >> UNSW-NB15_all.csv
 
+ADD semisup_data/* ./
+
 # install dependencies
 RUN pip3 install tensorflow keras tabulate sklearn pandas ipython sklearn-deap bokeh==0.13.0 torch torchvision
 
