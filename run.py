@@ -325,7 +325,7 @@ parser_tsne.add_argument('--random_state', type=int, default=None)
 parser_tsne.add_argument('--method', type=str, default='barnes_hut')
 parser_tsne.add_argument('--angle', type=float, default=0.5)
 parser_tsne.add_argument('--model_path', type=str, default=None,
-                           help='Path in which to save the model.')
+                         help='Path in which to save the model.')
 parser_tsne.set_defaults(func=tsne)
 
 

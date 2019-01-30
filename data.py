@@ -398,5 +398,6 @@ class SemisupData(Data):
 
 
 if __name__ == '__main__':
-    data = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', 'small_caia/unsup.csv', normalization='scaling')
-    data = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', None)
+    data1 = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', 'small_caia/unsup.csv',
+                        normalization='scaling')
+    data2 = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', None)

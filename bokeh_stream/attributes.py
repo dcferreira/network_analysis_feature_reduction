@@ -35,6 +35,7 @@ def train_visual_classifier(df_train, cats_nr_train):
 def get_attributes(source, df, radius_source, radius_slider,
                    point_info, point_probabilities):
     try:
+        # noinspection PyProtectedMember
         idx = source.selected._property_values['indices'][0]
     except KeyError:
         radius_source.data = {'x': [], 'y': [], 'rad': []}

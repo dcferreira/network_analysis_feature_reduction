@@ -293,7 +293,7 @@ class LDA(BaseModel):
         return self.lda.transform(data)
 
     def get_feature_weights(self):
-        return self.lda.scalings_[:,:self.size]
+        return self.lda.scalings_[:, :self.size]
 
 
 class TSNE(BaseModel):
@@ -331,7 +331,7 @@ class TSNE(BaseModel):
             return self.all_data_transformed[:self.data.x_train.shape[0]]
         elif len(data) == len(self.data.x_val):
             return self.all_data_transformed[self.data.x_train.shape[0]:self.data.x_train.shape[0] +
-                                                                        self.data.x_val.shape[0]]
+                                             self.data.x_val.shape[0]]
         elif len(data) == len(self.data.x_test):
             return self.all_data_transformed[self.data.x_train.shape[0] + self.data.x_val.shape[0]:]
         else:
@@ -456,6 +456,7 @@ class DeepSemiSupNN(BaseModel):
     def select_labels(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         if self.categories:
             selection = np.linalg.norm(y_true, axis=1) > 1e-6  # if belongs to some class
+            # noinspection PyUnresolvedReferences
             selection = torch.ByteTensor(selection.astype('uint8'))
         else:
             selection = y_true > -1

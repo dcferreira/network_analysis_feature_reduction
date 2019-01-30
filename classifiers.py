@@ -9,23 +9,22 @@ from scipy.spatial import cKDTree
 from sklearn import svm, linear_model, tree, cluster, model_selection
 from tabulate import tabulate
 
-
 classifiers = OrderedDict([
-    ('Decision Tree', lambda : model_selection.GridSearchCV(
+    ('Decision Tree', lambda: model_selection.GridSearchCV(
         estimator=tree.DecisionTreeClassifier(),
         param_grid={
             'max_depth': [int(np.ceil(x)) for x in np.logspace(1, 8, num=20, base=2)],
             'min_samples_leaf': [int(np.ceil(x)) for x in np.logspace(1, 6, num=15, base=2)]
         }
     )),
-    # ('SVM', lambda : model_selection.GridSearchCV(estimator=svm.LinearSVC(),
-    #                                               param_grid={'C': np.logspace(-6, 6, num=20, base=10),
-    #                                                           'loss': ['squared_hinge'],
-    #                                                           'random_state': [0]},
-    #                                               scoring='accuracy',
-    #                                               verbose=3,
-    #                                               n_jobs=10)),
-    # ('Logistic Regression', lambda : model_selection.GridSearchCV(
+    # ('SVM', lambda: model_selection.GridSearchCV(estimator=svm.LinearSVC(),
+    #                                              param_grid={'C': np.logspace(-6, 6, num=20, base=10),
+    #                                                          'loss': ['squared_hinge'],
+    #                                                          'random_state': [0]},
+    #                                              scoring='accuracy',
+    #                                              verbose=3,
+    #                                              n_jobs=10)),
+    # ('Logistic Regression', lambda: model_selection.GridSearchCV(
     #     estimator=linear_model.LogisticRegression(),
     #     param_grid={'C': np.logspace(-6, 6, num=20, base=10)},
     #     scoring='accuracy',
@@ -257,7 +256,7 @@ class Aggregator(object):
     def __init__(self, model_class, number, *args, **kwargs):
         if 'random_seed' in kwargs:  # give different seeds to the models
             np.random.seed(kwargs['random_seed'])
-            random_seeds = np.random.random_integers(0, 2**32, number)
+            random_seeds = np.random.random_integers(0, 2 ** 32, number)
             self.models = []
             for seed in random_seeds:
                 kwargs['random_seed'] = seed
@@ -266,6 +265,7 @@ class Aggregator(object):
             self.models = [model_class(*args, **kwargs) for _ in range(number)]
 
         self.metrics_classifiers = None
+        self.metrics_clusterers = None
         self.scores = None
         self.histories = None
 
@@ -324,13 +324,14 @@ class Aggregator(object):
                 new_labels = np.zeros(labels_scores.shape)
                 new_labels[np.arange(len(labels)), labels] = 1
                 return new_labels
+
             metrics = [get_metrics_cats(data.cats_test,
                                         aux_f(mod.predict_labels(data.x_test))) for mod in self.models]
             metrics_val = [get_metrics_cats(data.cats_val[labeled_cats_data_val],
-                                        aux_f(mod.predict_labels(data.x_val[labeled_cats_data_val])))
+                                            aux_f(mod.predict_labels(data.x_val[labeled_cats_data_val])))
                            for mod in self.models]
             metrics_train = [get_metrics_cats(data.cats_train[labeled_cats_data],
-                                        aux_f(mod.predict_labels(data.x_train[labeled_cats_data])))
+                                              aux_f(mod.predict_labels(data.x_train[labeled_cats_data])))
                              for mod in self.models]
         else:
             labeled_data = data.y_train > -1
@@ -373,53 +374,53 @@ class Aggregator(object):
             out[cname] = OrderedDict()
             out[cname]['binary'] = OrderedDict()
             out[cname]['binary']['reduced'] = OrderedDict([
-                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced'][met_idx] for met in metrics])) \
+                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][0]['reduced']))
             ])
             out[cname]['binary']['reduced_val'] = OrderedDict([
-                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced_val'][met_idx] for met in metrics])) \
+                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced_val'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][0]['reduced_val']))
             ])
             out[cname]['binary']['reduced_train'] = OrderedDict([
-                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced_train'][met_idx] for met in metrics])) \
+                (metrics[0][0]['metric'][met_idx], op([met[0]['reduced_train'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][0]['reduced_train']))
             ])
             out[cname]['binary']['original'] = OrderedDict([
-                (metrics[0][0]['metric'][met_idx], op([met[0]['original'][met_idx] for met in metrics])) \
+                (metrics[0][0]['metric'][met_idx], op([met[0]['original'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][0]['original']))
             ])
             out[cname]['binary']['original_val'] = OrderedDict([
-                (metrics[0][0]['metric'][met_idx], op([met[0]['original_val'][met_idx] for met in metrics])) \
+                (metrics[0][0]['metric'][met_idx], op([met[0]['original_val'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][0]['original_val']))
             ])
             out[cname]['binary']['original_train'] = OrderedDict([
-                (metrics[0][0]['metric'][met_idx], op([met[0]['original_train'][met_idx] for met in metrics])) \
+                (metrics[0][0]['metric'][met_idx], op([met[0]['original_train'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][0]['original_train']))
             ])
 
             out[cname]['multi'] = OrderedDict()
             out[cname]['multi']['reduced'] = OrderedDict([
-                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced'][met_idx] for met in metrics])) \
+                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][1]['reduced']))
             ])
             out[cname]['multi']['reduced_val'] = OrderedDict([
-                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced_val'][met_idx] for met in metrics])) \
+                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced_val'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][1]['reduced_val']))
             ])
             out[cname]['multi']['reduced_train'] = OrderedDict([
-                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced_train'][met_idx] for met in metrics])) \
+                (metrics[0][1]['metric'][met_idx], op([met[1]['reduced_train'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][1]['reduced_train']))
             ])
             out[cname]['multi']['original'] = OrderedDict([
-                (metrics[0][1]['metric'][met_idx], op([met[1]['original'][met_idx] for met in metrics])) \
+                (metrics[0][1]['metric'][met_idx], op([met[1]['original'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][1]['original']))
             ])
             out[cname]['multi']['original_val'] = OrderedDict([
-                (metrics[0][1]['metric'][met_idx], op([met[1]['original_val'][met_idx] for met in metrics])) \
+                (metrics[0][1]['metric'][met_idx], op([met[1]['original_val'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][1]['original_val']))
             ])
             out[cname]['multi']['original_train'] = OrderedDict([
-                (metrics[0][1]['metric'][met_idx], op([met[1]['original_train'][met_idx] for met in metrics])) \
+                (metrics[0][1]['metric'][met_idx], op([met[1]['original_train'][met_idx] for met in metrics]))
                 for met_idx in range(len(metrics[0][1]['original_train']))
             ])
         if not display_scores:
@@ -464,7 +465,6 @@ class Aggregator(object):
                 else:
                     print(tabulate(m_out, headers='keys'))
 
-
     def mean(self, display_scores=True):
         return self.apply_op(np.mean, display_scores=display_scores)
 
@@ -480,10 +480,11 @@ def test_model(data, model):
 
 
 def get_metrics(y_true, y_pred):
-    def far(y_true, y_pred):
-        conf_mat = sklearn.metrics.confusion_matrix(y_true, y_pred)
+    def far(y_t, y_p):
+        conf_mat = sklearn.metrics.confusion_matrix(y_t, y_p)
         tn, fp, fn, tp = conf_mat.ravel()
         return ((fp / (fp + tn)) + (fn / (fn + tp))) / 2
+
     return OrderedDict([
         ('accuracy', sklearn.metrics.accuracy_score(y_true, y_pred)),
         ('precision', sklearn.metrics.precision_score(y_true, y_pred)),
@@ -493,7 +494,7 @@ def get_metrics(y_true, y_pred):
     ])
 
 
-def get_clustering_metrics(X, y_true, y_pred):
+def get_clustering_metrics(data, y_true, y_pred):
     return OrderedDict([
         ('adj_rand_index', sklearn.metrics.adjusted_rand_score(y_true, y_pred)),
         ('adj_mutual_info', sklearn.metrics.adjusted_mutual_info_score(y_true, y_pred)),
@@ -501,22 +502,22 @@ def get_clustering_metrics(X, y_true, y_pred):
         ('completeness', sklearn.metrics.completeness_score(y_true, y_pred)),
         ('v-measure', sklearn.metrics.v_measure_score(y_true, y_pred)),
         ('fowlkes-mallows', sklearn.metrics.fowlkes_mallows_score(y_true, y_pred)),
-        ('silhouette', sklearn.metrics.silhouette_score(X, y_pred, sample_size=20000)),
-        ('calinski-harabaz', sklearn.metrics.calinski_harabaz_score(X, y_pred))
+        ('silhouette', sklearn.metrics.silhouette_score(data, y_pred, sample_size=20000)),
+        ('calinski-harabaz', sklearn.metrics.calinski_harabaz_score(data, y_pred))
     ])
 
 
 def get_metrics_cats(y_true, y_pred):
     out = OrderedDict([('accuracy', sklearn.metrics.accuracy_score(y_true, y_pred))])
-    out.update(OrderedDict([('f1_%d' % i , v) for i, v in enumerate(
+    out.update(OrderedDict([('f1_%d' % i, v) for i, v in enumerate(
         sklearn.metrics.f1_score(y_true, y_pred, average=None))])
-    )
-    out.update(OrderedDict([('precision_%d' % i , v) for i, v in enumerate(
+               )
+    out.update(OrderedDict([('precision_%d' % i, v) for i, v in enumerate(
         sklearn.metrics.precision_score(y_true, y_pred, average=None))])
-    )
-    out.update(OrderedDict([('recall_%d' % i , v) for i, v in enumerate(
+               )
+    out.update(OrderedDict([('recall_%d' % i, v) for i, v in enumerate(
         sklearn.metrics.recall_score(y_true, y_pred, average=None))])
-    )
+               )
     out['f1_macro'] = sklearn.metrics.f1_score(y_true, y_pred, average='macro')
     out['f1_micro'] = sklearn.metrics.f1_score(y_true, y_pred, average='micro')
     out['precision_macro'] = sklearn.metrics.precision_score(y_true, y_pred, average='macro')
@@ -530,6 +531,7 @@ class VisualClassifier(object):
     """Takes 2D train data, and for each new test point returns probability of belonging to each class.
     Probabilities are calculated by taking the classes from the samples in the train data within eps (given as input)
     distance of the test point."""
+
     def __init__(self, leafsize=16):
         """
 
