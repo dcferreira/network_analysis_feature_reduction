@@ -1,138 +1,31 @@
-from abc import ABC, abstractmethod
-
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 
 
-class Data(ABC):
-    @property
-    @abstractmethod
-    def x_train(self):
-        pass
-
-    @property
-    @abstractmethod
-    def x_val(self):
-        pass
-
-    @property
-    @abstractmethod
-    def x_test(self):
-        pass
-
-    @property
-    @abstractmethod
-    def y_train(self):
-        pass
-
-    @property
-    @abstractmethod
-    def y_val(self):
-        pass
-
-    @property
-    @abstractmethod
-    def y_test(self):
-        pass
-
-    @property
-    @abstractmethod
-    def cats_train(self):
-        pass
-
-    @property
-    @abstractmethod
-    def cats_val(self):
-        pass
-
-    @property
-    @abstractmethod
-    def cats_test(self):
-        pass
-
-    @property
-    @abstractmethod
-    def cats_nr_train(self):
-        pass
-
-    @property
-    @abstractmethod
-    def cats_nr_val(self):
-        pass
-
-    @property
-    @abstractmethod
-    def cats_nr_test(self):
-        pass
+class Data:
+    def __init__(self, x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test):
+        self.x_train = x_train
+        self.x_val = x_val
+        self.x_test = x_test
+        self.y_train = y_train
+        self.y_val = y_val
+        self.y_test = y_test
+        self.cats_train = cats_train
+        self.cats_val = cats_val
+        self.cats_test = cats_test
 
 
-class GenericData(Data):
+class UNSW15Generic(Data):
     def __init__(self, x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test, cats_nr_train,
                  cats_nr_val, cats_nr_test):
-        self._x_train = x_train
-        self._x_val = x_val
-        self._x_test = x_test
-        self._y_train = y_train
-        self._y_val = y_val
-        self._y_test = y_test
-        self._cats_train = cats_train
-        self._cats_val = cats_val
-        self._cats_test = cats_test
-        self._cats_nr_train = cats_nr_train
-        self._cats_nr_val = cats_nr_val
-        self._cats_nr_test = cats_nr_test
-
-    @property
-    def x_train(self):
-        return self._x_train
-
-    @property
-    def x_val(self):
-        return self._x_val
-
-    @property
-    def x_test(self):
-        return self._x_test
-
-    @property
-    def y_train(self):
-        return self._y_train
-
-    @property
-    def y_val(self):
-        return self._y_val
-
-    @property
-    def y_test(self):
-        return self._y_test
-
-    @property
-    def cats_train(self):
-        return self._cats_train
-
-    @property
-    def cats_val(self):
-        return self._cats_val
-
-    @property
-    def cats_test(self):
-        return self._cats_test
-
-    @property
-    def cats_nr_train(self):
-        return self._cats_nr_train
-
-    @property
-    def cats_nr_val(self):
-        return self._cats_nr_val
-
-    @property
-    def cats_nr_test(self):
-        return self._cats_nr_test
+        super().__init__(x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test)
+        self.cats_nr_train = cats_nr_train
+        self.cats_nr_val = cats_nr_val
+        self.cats_nr_test = cats_nr_test
 
 
-class UNSW15Data(GenericData):
+class UNSW15Data(UNSW15Generic):
     def __init__(self, all_data, training, testing):
         big_df = read_unsw_df(all_data)
         unsup = big_df
@@ -269,7 +162,7 @@ dummy_variable_list = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dlos
                        'attack_cat_Worms', 'attack_cat_Normal', 'label']
 
 
-class SemisupData(GenericData):
+class SemisupUNSW15(UNSW15Generic):
     def __init__(self, train: str, test: str, unsup: str=None, normalization: str='standard'):
         """
 
@@ -366,6 +259,6 @@ class SemisupData(GenericData):
 
 
 if __name__ == '__main__':
-    data1 = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', 'small_caia/unsup.csv',
-                        normalization='scaling')
-    data2 = SemisupData('small_caia/caia_train.csv', 'small_caia/caia_test.csv', None)
+    data1 = SemisupUNSW15('small_caia/caia_train.csv', 'small_caia/caia_test.csv', 'small_caia/unsup.csv',
+                          normalization='scaling')
+    data2 = SemisupUNSW15('small_caia/caia_train.csv', 'small_caia/caia_test.csv', None)

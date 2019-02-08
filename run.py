@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from classifiers import Aggregator
-from data import UNSW15Data, SemisupData
+from data import UNSW15Data, SemisupUNSW15
 from models import SemisupNN, UnsupNN, SupNN, PCA, TSNE, MDS, LDA, DeepSemiSupNN
 
 
@@ -17,10 +17,10 @@ def get_data(args):
         unsup = None
         if os.path.exists(os.path.join(args.datapath, 'unsup.csv')):
             unsup = os.path.join(args.datapath, 'unsup.csv')
-        return SemisupData(os.path.join(args.datapath, 'train.csv'),
-                           os.path.join(args.datapath, 'test.csv'),
-                           unsup,
-                           )
+        return SemisupUNSW15(os.path.join(args.datapath, 'train.csv'),
+                             os.path.join(args.datapath, 'test.csv'),
+                             unsup,
+                             )
     else:
         return UNSW15Data(args.datapath + os.sep + 'UNSW-NB15_all.csv',
                           args.datapath + os.sep + 'UNSW_NB15_training-set.csv',
