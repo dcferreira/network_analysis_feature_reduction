@@ -67,49 +67,21 @@ class Data(ABC):
         pass
 
 
-class UNSW15Data(Data):
-    def __init__(self, all_data, training, testing):
-        big_df = read_unsw_df(all_data)
-        unsup = big_df
-        train_df = read_unsw_df(training, big_df)
-        test_df = read_unsw_df(testing, big_df)
-        self.columns = train_df.columns
-        train = train_df.values
-        test = test_df.values
-
-        # use the full train set with classifiers (they use crossvalidation)
-        x_full_train, self.y_full_train, self.cats_full_train = (train[:, :-11],
-                                                                 train[:, -1],
-                                                                 train[:, -11:-1])
-
-        # split train/dev/test
-        unsup_mat = unsup.values
-        x_train, x_val, y_train, y_val, cats_train, cats_val = \
-            train_test_split(train[:, :-11],  # feats
-                             train[:, -1],  # labels
-                             train[:, -11:-1],  # cats
-                             test_size=0.2, random_state=1337)
-        x_test, y_test, cats_test = (test[:, :-11],
-                                     test[:, -1],
-                                     test[:, -11:-1])
-
-        # normalize
-        maximum = unsup_mat[:, :-11].max(axis=0)
-        minimum = unsup_mat[:, :-11].min(axis=0)
-
-        # unsup_mat[:, :-11] = (unsup_mat[:, :-11] - minimum) / (maximum - minimum)
-        self.x_full_train = (x_full_train - minimum) / (maximum - minimum)
-        self._x_train = (x_train - minimum) / (maximum - minimum)
-        self._x_val = (x_val - minimum) / (maximum - minimum)
-        self._x_test = (x_test - minimum) / (maximum - minimum)
-        self._y_train, self._y_test, self._y_val = y_train, y_test, y_val
-        self.cats_nr_full_train, self._cats_nr_train, self._cats_nr_test, self._cats_nr_val = (
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in self.cats_full_train],
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_train],
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_test],
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_val]
-        )
-        self._cats_train, self._cats_test, self._cats_val = cats_train, cats_test, cats_val
+class GenericData(Data):
+    def __init__(self, x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test, cats_nr_train,
+                 cats_nr_val, cats_nr_test):
+        self._x_train = x_train
+        self._x_val = x_val
+        self._x_test = x_test
+        self._y_train = y_train
+        self._y_val = y_val
+        self._y_test = y_test
+        self._cats_train = cats_train
+        self._cats_val = cats_val
+        self._cats_test = cats_test
+        self._cats_nr_train = cats_nr_train
+        self._cats_nr_val = cats_nr_val
+        self._cats_nr_test = cats_nr_test
 
     @property
     def x_train(self):
@@ -158,6 +130,53 @@ class UNSW15Data(Data):
     @property
     def cats_nr_test(self):
         return self._cats_nr_test
+
+
+class UNSW15Data(GenericData):
+    def __init__(self, all_data, training, testing):
+        big_df = read_unsw_df(all_data)
+        unsup = big_df
+        train_df = read_unsw_df(training, big_df)
+        test_df = read_unsw_df(testing, big_df)
+        self.columns = train_df.columns
+        train = train_df.values
+        test = test_df.values
+
+        # use the full train set with classifiers (they use crossvalidation)
+        x_full_train, self.y_full_train, self.cats_full_train = (train[:, :-11],
+                                                                 train[:, -1],
+                                                                 train[:, -11:-1])
+
+        # split train/dev/test
+        unsup_mat = unsup.values
+        x_train, x_val, y_train, y_val, cats_train, cats_val = \
+            train_test_split(train[:, :-11],  # feats
+                             train[:, -1],  # labels
+                             train[:, -11:-1],  # cats
+                             test_size=0.2, random_state=1337)
+        x_test, y_test, cats_test = (test[:, :-11],
+                                     test[:, -1],
+                                     test[:, -11:-1])
+
+        # normalize
+        maximum = unsup_mat[:, :-11].max(axis=0)
+        minimum = unsup_mat[:, :-11].min(axis=0)
+
+        # unsup_mat[:, :-11] = (unsup_mat[:, :-11] - minimum) / (maximum - minimum)
+        self.x_full_train = (x_full_train - minimum) / (maximum - minimum)
+        x_train = (x_train - minimum) / (maximum - minimum)
+        x_val = (x_val - minimum) / (maximum - minimum)
+        x_test = (x_test - minimum) / (maximum - minimum)
+        y_train, y_test, y_val = y_train, y_test, y_val
+        self.cats_nr_full_train, cats_nr_train, cats_nr_test, cats_nr_val = (
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in self.cats_full_train],
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_train],
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_test],
+            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_val]
+        )
+        self._cats_train, self._cats_test, self._cats_val = cats_train, cats_test, cats_val
+        super().__init__(x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test, cats_nr_train,
+                         cats_nr_val, cats_nr_test)
 
 
 def read_unsw_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
@@ -250,7 +269,7 @@ dummy_variable_list = ['dur', 'sbytes', 'dbytes', 'sttl', 'dttl', 'sloss', 'dlos
                        'attack_cat_Worms', 'attack_cat_Normal', 'label']
 
 
-class SemisupData(Data):
+class SemisupData(GenericData):
     def __init__(self, train: str, test: str, unsup: str=None, normalization: str='standard'):
         """
 
@@ -285,15 +304,15 @@ class SemisupData(Data):
         # separate data from labels
         nr_non_categorical = len([c for c in list(train_df) if c in self.columns])
         train_array, train_y, train_cats, train_cats_nr = self.split_labels(train_df)
-        test_array, test_y, test_cats, test_cats_nr = self.split_labels(test_df)
+        x_test, y_test, cats_test, cats_nr_test = self.split_labels(test_df)
         unsup_array, unsup_y, unsup_cats, unsup_cats_nr = self.split_labels(unsup_df)
 
         # normalize only the non-dummy variables (keep dummy at 0 and 1)
         if unsup is None:
-            stacked = np.vstack((train_array[:, :nr_non_categorical], test_array[:, :nr_non_categorical]))
+            stacked = np.vstack((train_array[:, :nr_non_categorical], x_test[:, :nr_non_categorical]))
         else:
             stacked = np.vstack((train_array[:, :nr_non_categorical],
-                                 test_array[:, :nr_non_categorical],
+                                 x_test[:, :nr_non_categorical],
                                  unsup_array[:, :nr_non_categorical]))
         if normalization == 'standard':
             sub_value = stacked.mean(axis=0)
@@ -305,7 +324,7 @@ class SemisupData(Data):
             raise NotImplementedError(f'Choose one normalization in [standard, scaling]. Received: {normalization}')
         div_value[div_value == 0] = 1.  # avoid division by 0
         train_array[:, :nr_non_categorical] = (train_array[:, :nr_non_categorical] - sub_value) / div_value
-        test_array[:, :nr_non_categorical] = (test_array[:, :nr_non_categorical] - sub_value) / div_value
+        x_test[:, :nr_non_categorical] = (x_test[:, :nr_non_categorical] - sub_value) / div_value
         if unsup is not None:
             unsup_array[:, :nr_non_categorical] = (unsup_array[:, :nr_non_categorical] - sub_value) / div_value
 
@@ -324,12 +343,9 @@ class SemisupData(Data):
             mixed_train, mixed_train_y, mixed_train_cats, mixed_train_cats_nr,
             test_size=0.2, shuffle=True, random_state=1337
         )
-        self._x_train, self._x_val, self._x_test = x_train, x_val, test_array
-        self._y_train, self._y_val, self._y_test = y_train, y_val, test_y
-        self._cats_train, self._cats_val, self._cats_test = cats_train, cats_val, test_cats
-        self._cats_nr_train, self._cats_nr_val, self._cats_nr_test = cats_nr_train, cats_nr_val, test_cats_nr
 
-        pass
+        super().__init__(x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test, cats_nr_train,
+                         cats_nr_val, cats_nr_test)
 
     @staticmethod
     def split_labels(df: pd.DataFrame) -> (np.ndarray, np.ndarray, np.ndarray, np.ndarray):
@@ -347,54 +363,6 @@ class SemisupData(Data):
         cats_nr = np.array([np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats.values])
 
         return df.fillna(0).values, labels.values, cats.values, cats_nr
-
-    @property
-    def x_train(self):
-        return self._x_train
-
-    @property
-    def x_val(self):
-        return self._x_val
-
-    @property
-    def x_test(self):
-        return self._x_test
-
-    @property
-    def y_train(self):
-        return self._y_train
-
-    @property
-    def y_val(self):
-        return self._y_val
-
-    @property
-    def y_test(self):
-        return self._y_test
-
-    @property
-    def cats_train(self):
-        return self._cats_train
-
-    @property
-    def cats_val(self):
-        return self._cats_val
-
-    @property
-    def cats_test(self):
-        return self._cats_test
-
-    @property
-    def cats_nr_train(self):
-        return self._cats_nr_train
-
-    @property
-    def cats_nr_val(self):
-        return self._cats_nr_val
-
-    @property
-    def cats_nr_test(self):
-        return self._cats_nr_test
 
 
 if __name__ == '__main__':
