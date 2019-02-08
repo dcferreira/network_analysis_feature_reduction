@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
 
 
 class Data:
@@ -256,6 +257,63 @@ class SemisupUNSW15(UNSW15Generic):
         cats_nr = np.array([np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats.values])
 
         return df.fillna(0).values, labels.values, cats.values, cats_nr
+
+
+class GenericData(Data):
+    def __init__(self, train: np.ndarray, train_y: np.ndarray, train_cats: np.ndarray,
+                 test: np.ndarray, test_y: np.ndarray, test_cats: np.ndarray,
+                 unsup: np.ndarray=None, normalization: str='standard',
+                 split_random_seed: int=1337):
+        x_train, x_val, y_train, y_val, cats_train, cats_val = train_test_split(
+            train, train_y, train_cats,
+            test_size=0.2,
+            random_state=split_random_seed
+        )
+        if normalization == 'standard':
+            sub = x_train.mean(axis=0)
+            div = x_train.std(axis=0)
+        elif normalization == 'scaling':
+            sub = x_train.min(axis=0)
+            div = x_train.max(axis=0) - sub
+        else:
+            raise NotImplementedError(f'Choose one normalization in [standard, scaling]. Received: {normalization}')
+        div[div == 0.] = 1  # avoid division by 0
+        x_train = (x_train - sub) / div
+        x_test = (test - sub) / div
+        if unsup is not None:
+            unsup = (unsup - sub) / div
+
+            # mix train and unsup
+            mixed_train = np.concatenate((x_train, unsup))
+            mixed_y = np.concatenate((y_train, - np.ones(y_train.shape)))
+            mixed_cats = np.concatenate((cats_train, np.zeros(cats_train.shape)))
+
+            x_train, y_train, cats_train = shuffle(mixed_train, mixed_y, mixed_cats)
+
+        super().__init__(x_train, x_val, x_test, y_train, y_val, test_y, cats_train, cats_val, test_cats)
+
+
+class CSVData(GenericData):
+    def __init__(self, train_path: str, test_path: str, unsup_path: str=None, fillna=0, read_args: dict=None,
+                 label_name: str='Label', cats_name: str='attack_cat', **kwargs):
+        pd_kwargs = read_args if read_args is not None else {}
+        # load data
+        train = pd.read_csv(train_path, **pd_kwargs).fillna(fillna)
+        test = pd.read_csv(test_path, **pd_kwargs).fillna(fillna)
+        unsup = None
+        if unsup_path is not None:
+            unsup = pd.read_csv(unsup, **pd_kwargs).fillna(fillna)
+
+        x_train = train.drop([label_name, cats_name], axis=1)
+        x_test = test.drop([label_name, cats_name], axis=1)
+        y_train = train[label_name]
+        y_test = test[label_name]
+        cats_train = train[cats_name]
+        cats_test = test[cats_name]
+
+        super().__init__(x_train, y_train, cats_train,
+                         x_test, y_test, cats_test,
+                         unsup, **kwargs)
 
 
 if __name__ == '__main__':
