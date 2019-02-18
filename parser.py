@@ -1,13 +1,28 @@
 import argparse
 import json
 import os
+import random
 from collections import OrderedDict
+
+import numpy as np
 
 from classifiers import Aggregator
 from models import PCA, LDA, UnsupNN, SupNN, SemisupNN, DeepSemiSupNN, TSNE, MDS
 
 
+def set_seeds(tf_seed=False, pytorch_seed=False):
+    random.seed(1337)
+    np.random.seed(1337)
+    if tf_seed:
+        import tensorflow
+        tensorflow.set_random_seed(1337)
+    if pytorch_seed:
+        import torch
+        torch.manual_seed(1337)
+
+
 def pca(args, data):
+    set_seeds()
     mod = Aggregator(PCA, 1, data, args.size)
     mod.train()
     mod.get_metrics(data)
@@ -16,6 +31,7 @@ def pca(args, data):
 
 
 def lda(args, data):
+    set_seeds()
     mod = Aggregator(LDA, 1, data, args.size, categories=args.categories)
     mod.train()
     mod.get_metrics(data)
@@ -48,6 +64,7 @@ def aggregated_keras(args, mod, data, path):
 
 
 def unsup_ae(args, data):
+    set_seeds(tf_seed=True)
     mod = Aggregator(UnsupNN, args.number, data, args.size,
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
@@ -57,6 +74,7 @@ def unsup_ae(args, data):
 
 
 def sup_cats_ae(args, data):
+    set_seeds(tf_seed=True)
     mod = Aggregator(SupNN, args.number, data, args.size,
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
@@ -69,6 +87,7 @@ def sup_cats_ae(args, data):
 
 
 def bin_ae(args, data):
+    set_seeds(tf_seed=True)
     mod = Aggregator(SemisupNN, args.number, data, args.size, categories=False,
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
@@ -81,6 +100,7 @@ def bin_ae(args, data):
 
 
 def deep_bin_ae(args, data):
+    set_seeds(pytorch_seed=True)
     mod = Aggregator(DeepSemiSupNN, args.number, data, args.size, categories=False,
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      lr=args.lr, lr_decay=args.lr_decay, random_seed=args.random_seed,
@@ -92,6 +112,7 @@ def deep_bin_ae(args, data):
 
 
 def cats_ae(args, data):
+    set_seeds(tf_seed=True)
     mod = Aggregator(SemisupNN, args.number, data, args.size, categories=True,
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      enc_regularizer_weight=args.enc_regularizer_weight,
@@ -104,6 +125,7 @@ def cats_ae(args, data):
 
 
 def deep_cats_ae(args, data):
+    set_seeds(pytorch_seed=True)
     mod = Aggregator(DeepSemiSupNN, args.number, data, args.size, categories=True,
                      reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
                      lr=args.lr, lr_decay=args.lr_decay, random_seed=args.random_seed,
@@ -115,6 +137,7 @@ def deep_cats_ae(args, data):
 
 
 def tsne(args, data):
+    set_seeds()
     mod = Aggregator(TSNE, args.number, data, args.size,
                      perplexity=args.perplexity, early_exaggeration=args.early_exaggeration,
                      learning_rate=args.learning_rate, n_iter=args.n_iter,
@@ -127,6 +150,7 @@ def tsne(args, data):
 
 
 def mds(args, data):
+    set_seeds()
     mod = Aggregator(MDS, args.number, data, args.size, n_components=args.size,
                      metric=args.metric, n_init=args.n_init, max_iter=args.max_iter,
                      verbose=args.verbose, eps=args.eps, n_jobs=args.n_jobs,

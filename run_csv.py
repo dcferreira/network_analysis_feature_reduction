@@ -1,8 +1,4 @@
 import os
-import random
-
-import numpy as np
-import tensorflow as tf
 
 from data import CSVData
 from parser import parser
@@ -59,10 +55,6 @@ parser.add_argument('--cats_name', type=str, default='attack_cat',
 
 
 if __name__ == '__main__':
-    random.seed(1337)
-    np.random.seed(1337)
-    tf.set_random_seed(1337)
-
     args = parser.parse_args()
 
     train_path, test_path, unsup_path = get_paths(args)

@@ -16,6 +16,9 @@ class Data:
         self.cats_val = cats_val
         self.cats_test = cats_test
 
+        # note that this class doesn't implement random seed, so anything inheriting from it needs to
+        # implement it if necessary
+
 
 class UNSW15Generic(Data):
     def __init__(self, x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test, cats_nr_train,
