@@ -39,7 +39,7 @@ To do that, run:
 
 .. code:: bash
 
-    docker run dcferreira/network_analysis_feature_reduction -h
+    docker run dcferreira/network_analysis_feature_reduction unsw15 -h
 
 That command should output the help message.
 
@@ -47,7 +47,7 @@ To run the same example as above, run
 
 .. code:: bash
 
-    docker run dcferreira/network_analysis_feature_reduction --size 2 --number 5 cats_ae --reconstruct_loss mse --reconstruct_weight 1e-3 $DATAPATH
+    docker run dcferreira/network_analysis_feature_reduction unsw15 --size 2 --number 5 cats_ae --reconstruct_loss mse --reconstruct_weight 1e-3 $DATAPATH
 
 
 Traffic Flow Mapper
