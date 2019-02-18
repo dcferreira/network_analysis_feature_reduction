@@ -4,23 +4,21 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from data import UNSW15Data, SemisupUNSW15
+from data import UNSW15Data
 from parser import parser
 
 
 def get_data(parsed_args):
-    if parsed_args.datatype == 'semisup':
-        unsup = None
-        if os.path.exists(os.path.join(parsed_args.datapath, 'unsup.csv')):
-            unsup = os.path.join(parsed_args.datapath, 'unsup.csv')
-        return SemisupUNSW15(os.path.join(parsed_args.datapath, 'train.csv'),
-                             os.path.join(parsed_args.datapath, 'test.csv'),
-                             unsup,
-                             )
-    else:
-        return UNSW15Data(parsed_args.datapath + os.sep + 'UNSW-NB15_all.csv',
+    return UNSW15Data(parsed_args.datapath + os.sep + 'UNSW-NB15_all.csv',
                           parsed_args.datapath + os.sep + 'UNSW_NB15_training-set.csv',
                           parsed_args.datapath + os.sep + 'UNSW_NB15_testing-set.csv')
+
+
+parser.add_argument('datapath', type=str, help='Path for data.\n'
+                                               'This should be a directory with the following files: '
+                                               '"UNSW-NB15_all.csv", "UNSW_NB15_training-set.csv", and '
+                                               '"UNSW_NB15_testing-set.csv".')
+
 
 
 if __name__ == '__main__':
