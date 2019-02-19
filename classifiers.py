@@ -17,19 +17,19 @@ classifiers = OrderedDict([
             'min_samples_leaf': [int(np.ceil(x)) for x in np.logspace(1, 6, num=15, base=2)]
         }
     )),
-    # ('SVM', lambda: model_selection.GridSearchCV(estimator=svm.LinearSVC(),
-    #                                              param_grid={'C': np.logspace(-6, 6, num=20, base=10),
-    #                                                          'loss': ['squared_hinge'],
-    #                                                          'random_state': [0]},
-    #                                              scoring='accuracy',
-    #                                              verbose=3,
-    #                                              n_jobs=10)),
-    # ('Logistic Regression', lambda: model_selection.GridSearchCV(
-    #     estimator=linear_model.LogisticRegression(),
-    #     param_grid={'C': np.logspace(-6, 6, num=20, base=10)},
-    #     scoring='accuracy',
-    #     verbose=3,
-    #     n_jobs=10))
+    ('SVM', lambda: model_selection.GridSearchCV(estimator=svm.LinearSVC(),
+                                                 param_grid={'C': np.logspace(-6, 6, num=20, base=10),
+                                                             'loss': ['squared_hinge'],
+                                                             'random_state': [0]},
+                                                 scoring='accuracy',
+                                                 verbose=3,
+                                                 n_jobs=10)),
+    ('Logistic Regression', lambda: model_selection.GridSearchCV(
+        estimator=linear_model.LogisticRegression(),
+        param_grid={'C': np.logspace(-6, 6, num=20, base=10)},
+        scoring='accuracy',
+        verbose=3,
+        n_jobs=10))
 ])
 clusterers = OrderedDict([
     # ('K-Means', cluster.KMeans)
