@@ -612,3 +612,13 @@ class DeepSemiSupNN(BaseModel):
 
     def get_feature_weights(self):
         raise NotImplementedError
+
+
+class DeepUnsupNN(DeepSemiSupNN):
+    def loss(self, y_pred: torch.Tensor, y_true: torch.Tensor, reconstruct: torch.Tensor,
+             input_data: torch.Tensor):
+        reconstruction_loss = self.reconstruct_loss(reconstruct, input_data)
+        return reconstruction_loss, torch.Tensor([0.]), reconstruction_loss
+
+    def get_feature_weights(self):
+        raise NotImplementedError

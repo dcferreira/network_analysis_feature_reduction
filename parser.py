@@ -7,7 +7,7 @@ from collections import OrderedDict
 import numpy as np
 
 from classifiers import Aggregator
-from models import PCA, LDA, UnsupNN, SupNN, SemisupNN, DeepSemiSupNN, TSNE, MDS
+from models import PCA, LDA, UnsupNN, SupNN, SemisupNN, DeepSemiSupNN, TSNE, MDS, DeepUnsupNN
 
 
 def set_seeds(tf_seed=False, pytorch_seed=False):
@@ -70,6 +70,15 @@ def unsup_ae(args, data):
                      enc_regularizer_weight=args.enc_regularizer_weight,
                      dec_regularizer_weight=args.dec_regularizer_weight,
                      lr=args.lr, lr_decay=args.lr_decay, encoder_regularizer=args.encoder_regularizer)
+    aggregated_keras(args, mod, data, args.model_path)
+
+
+def deep_unsup_ae(args, data):
+    set_seeds(pytorch_seed=True)
+    mod = Aggregator(DeepUnsupNN, args.number, data, args.size, categories=False,
+                     reconstruct_loss=args.reconstruct_loss, reconstruct_weight=args.reconstruct_weight,
+                     lr=args.lr, lr_decay=args.lr_decay, random_seed=args.random_seed,
+                     checkpoint_path=args.checkpoint)
     aggregated_keras(args, mod, data, args.model_path)
 
 
@@ -280,9 +289,9 @@ parser_bin_ae = subparsers.add_parser('bin_ae', parents=[parent_parser],
 parser_bin_ae.set_defaults(func=bin_ae)
 
 # deep_bin_ae
-parser_bin_ae = subparsers.add_parser('deep_bin_ae', parents=[deepsemisup_parser],
-                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser_bin_ae.set_defaults(func=deep_bin_ae)
+parser_deep_bin_ae = subparsers.add_parser('deep_bin_ae', parents=[deepsemisup_parser],
+                                           formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_deep_bin_ae.set_defaults(func=deep_bin_ae)
 
 # cats_ae
 parser_cats_ae = subparsers.add_parser('cats_ae', parents=[parent_parser],
@@ -290,9 +299,14 @@ parser_cats_ae = subparsers.add_parser('cats_ae', parents=[parent_parser],
 parser_cats_ae.set_defaults(func=cats_ae)
 
 # deep_cats_ae
-parser_cats_ae = subparsers.add_parser('deep_cats_ae', parents=[deepsemisup_parser],
-                                       formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser_cats_ae.set_defaults(func=deep_cats_ae)
+parser_deep_cats_ae = subparsers.add_parser('deep_cats_ae', parents=[deepsemisup_parser],
+                                            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_deep_cats_ae.set_defaults(func=deep_cats_ae)
+
+# deep_unsup_ae
+parser_deep_unsup_ae = subparsers.add_parser('deep_unsup_ae', parents=[deepsemisup_parser],
+                                             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser_deep_unsup_ae.set_defaults(func=deep_unsup_ae)
 
 
 # tsne
