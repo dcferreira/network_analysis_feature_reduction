@@ -8,6 +8,8 @@ from sklearn.utils import shuffle
 
 class Data:
     def __init__(self, x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test):
+        """Note: this class doesn't implement random seed, so anything inheriting from it needs to
+        implement it if necessary."""
         self.x_train = x_train
         self.x_val = x_val
         self.x_test = x_test
@@ -18,8 +20,14 @@ class Data:
         self.cats_val = cats_val
         self.cats_test = cats_test
 
-        # note that this class doesn't implement random seed, so anything inheriting from it needs to
-        # implement it if necessary
+        # convert categories to numbers
+        self.cats_nr_train, self.cats_nr_test, self.cats_nr_val = (
+            np.array([np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_train]),
+            np.array([np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_test]),
+            np.array([np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_val])
+        )
+
+        self.n_categories = self.cats_train.shape[1]
 
 
 class UNSW15Generic(Data):
@@ -31,7 +39,7 @@ class UNSW15Generic(Data):
         self.cats_nr_test = cats_nr_test
 
 
-class UNSW15Data(UNSW15Generic):
+class UNSW15Data(Data):
     def __init__(self, all_data, training, testing):
         big_df = read_unsw_df(all_data)
         unsup = big_df
@@ -67,15 +75,9 @@ class UNSW15Data(UNSW15Generic):
         x_val = (x_val - minimum) / (maximum - minimum)
         x_test = (x_test - minimum) / (maximum - minimum)
         y_train, y_test, y_val = y_train, y_test, y_val
-        self.cats_nr_full_train, cats_nr_train, cats_nr_test, cats_nr_val = (
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in self.cats_full_train],
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_train],
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_test],
-            [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in cats_val]
-        )
+        self.cats_nr_full_train = [np.argmax(x) if np.sum(x) > 1e-6 else -1 for x in self.cats_full_train]
         self._cats_train, self._cats_test, self._cats_val = cats_train, cats_test, cats_val
-        super().__init__(x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test, cats_nr_train,
-                         cats_nr_val, cats_nr_test)
+        super().__init__(x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test)
 
 
 def read_unsw_df(filename, big_df=None, onehot=True, cat_only=False, num_only=False):
@@ -269,7 +271,7 @@ class GenericData(Data):
                  test: np.ndarray, test_y: np.ndarray, cats_str_test: np.ndarray,
                  unsup: np.ndarray=None, normalization: str='standard',
                  split_random_seed: int=1337):
-        x_train, x_val, y_train, y_val, cats_train, cats_val = train_test_split(
+        x_train, x_val, y_train, y_val, cats_str_train, cats_str_val = train_test_split(
             train, train_y, cats_str_train,
             test_size=0.2,
             random_state=split_random_seed
@@ -282,18 +284,13 @@ class GenericData(Data):
                 categories[cat_name] = len(categories)
         print('Categories to number dictionary:', categories)
 
-        # convert categories to numbers
-        self.cats_nr_train = np.array([categories[c] for c in cats_train])
-        self.cats_nr_test = np.array([categories[c] for c in cats_str_test])
-        self.cats_nr_val = np.array([categories[c] for c in cats_val])
-
         # make one-hot vectors of categories
-        cats_train = np.zeros((len(self.cats_nr_train), len(categories)))
-        cats_train[:, self.cats_nr_train] = 1.
-        cats_test = np.zeros((len(self.cats_nr_test), len(categories)))
-        cats_test[:, self.cats_nr_test] = 1.
-        cats_val = np.zeros((len(self.cats_nr_val), len(categories)))
-        cats_val[:, self.cats_nr_val] = 1.
+        cats_train = np.zeros((len(cats_str_train), len(categories)))
+        cats_train[np.arange(len(cats_train)), np.array([categories[c] for c in cats_str_train])] = 1.
+        cats_test = np.zeros((len(cats_str_test), len(categories)))
+        cats_test[np.arange(len(cats_test)), np.array([categories[c] for c in cats_str_test])] = 1.
+        cats_val = np.zeros((len(cats_str_val), len(categories)))
+        cats_val[np.arange(len(cats_val)), np.array([categories[c] for c in cats_str_val])] = 1.
 
         # normalize
         if normalization == 'standard':

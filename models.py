@@ -386,14 +386,14 @@ class DeepEncoderModel(nn.Module):
 
 
 class DeepDecoderModel(nn.Module):
-    def __init__(self, dim, inp_dim, categories):
+    def __init__(self, dim, inp_dim, categories: bool, n_categories: int):
         super().__init__()
         self.fc1 = nn.Linear(dim, 10)
         self.bn1 = nn.BatchNorm1d(10)
         self.fc2 = nn.Linear(10, 20)
         self.bn2 = nn.BatchNorm1d(20)
         if categories:
-            self.dense = nn.Linear(20, 10)
+            self.dense = nn.Linear(20, n_categories)
             self.act = nn.Softmax(dim=1)
         else:
             self.dense = nn.Linear(20, 1)
@@ -451,7 +451,7 @@ class DeepSemiSupNN(BaseModel):
         return DeepEncoderModel(self.size, self.data.x_train.shape[1])
 
     def get_decoder(self):
-        return DeepDecoderModel(self.size, self.data.x_train.shape[1], self.categories)
+        return DeepDecoderModel(self.size, self.data.x_train.shape[1], self.categories, self.data.n_categories)
 
     def select_labels(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> (torch.Tensor, torch.Tensor):
         if self.categories:
