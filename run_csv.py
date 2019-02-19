@@ -5,7 +5,7 @@ from parser import parser
 
 
 def get_paths(parsed_args):
-    if parsed_args.datapath is not None or (parsed_args.train_path is not None and parsed_args.test_path is not None):
+    if parsed_args.datapath is None and (parsed_args.train_path is None or parsed_args.test_path is None):
         raise ValueError('Either "datapath" is specified, or both "train_path" and "test_path" must be specified!')
 
     if parsed_args.datapath is None:
