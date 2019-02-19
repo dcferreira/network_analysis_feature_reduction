@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -12,7 +14,7 @@ class Data:
         self.y_train = y_train
         self.y_val = y_val
         self.y_test = y_test
-        self.cats_train = cats_train
+        self.cats_train = cats_train  # one-hot representation of classes
         self.cats_val = cats_val
         self.cats_test = cats_test
 
@@ -24,7 +26,7 @@ class UNSW15Generic(Data):
     def __init__(self, x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test, cats_nr_train,
                  cats_nr_val, cats_nr_test):
         super().__init__(x_train, x_val, x_test, y_train, y_val, y_test, cats_train, cats_val, cats_test)
-        self.cats_nr_train = cats_nr_train
+        self.cats_nr_train = cats_nr_train  # numerical representation of classes
         self.cats_nr_val = cats_nr_val
         self.cats_nr_test = cats_nr_test
 
@@ -263,15 +265,37 @@ class SemisupUNSW15(UNSW15Generic):
 
 
 class GenericData(Data):
-    def __init__(self, train: np.ndarray, train_y: np.ndarray, train_cats: np.ndarray,
-                 test: np.ndarray, test_y: np.ndarray, test_cats: np.ndarray,
+    def __init__(self, train: np.ndarray, train_y: np.ndarray, cats_str_train: np.ndarray,
+                 test: np.ndarray, test_y: np.ndarray, cats_str_test: np.ndarray,
                  unsup: np.ndarray=None, normalization: str='standard',
                  split_random_seed: int=1337):
         x_train, x_val, y_train, y_val, cats_train, cats_val = train_test_split(
-            train, train_y, train_cats,
+            train, train_y, cats_str_train,
             test_size=0.2,
             random_state=split_random_seed
         )
+
+        # get categories dictionary
+        categories = {cat_name: i for i, cat_name in enumerate(sorted(np.unique(cats_str_train)))}
+        for cat_name in sorted(np.unique(cats_str_test)):
+            if cat_name not in categories:
+                categories[cat_name] = len(categories)
+        print('Categories to number dictionary:', categories)
+
+        # convert categories to numbers
+        self.cats_nr_train = np.array([categories[c] for c in cats_train])
+        self.cats_nr_test = np.array([categories[c] for c in cats_str_test])
+        self.cats_nr_val = np.array([categories[c] for c in cats_val])
+
+        # make one-hot vectors of categories
+        cats_train = np.zeros((len(self.cats_nr_train), len(categories)))
+        cats_train[:, self.cats_nr_train] = 1.
+        cats_test = np.zeros((len(self.cats_nr_test), len(categories)))
+        cats_test[:, self.cats_nr_test] = 1.
+        cats_val = np.zeros((len(self.cats_nr_val), len(categories)))
+        cats_val[:, self.cats_nr_val] = 1.
+
+        # normalize
         if normalization == 'standard':
             sub = x_train.mean(axis=0)
             div = x_train.std(axis=0)
@@ -288,35 +312,40 @@ class GenericData(Data):
 
             # mix train and unsup
             mixed_train = np.concatenate((x_train, unsup))
-            mixed_y = np.concatenate((y_train, - np.ones(y_train.shape)))
-            mixed_cats = np.concatenate((cats_train, np.zeros(cats_train.shape)))
+            mixed_y = np.concatenate((y_train, - np.ones(len(unsup))))
+            mixed_cats = np.concatenate((cats_train, np.zeros((len(unsup), len(categories)))))
 
             x_train, y_train, cats_train = shuffle(mixed_train, mixed_y, mixed_cats)
 
-        super().__init__(x_train, x_val, x_test, y_train, y_val, test_y, cats_train, cats_val, test_cats)
+        super().__init__(x_train, x_val, x_test, y_train, y_val, test_y, cats_train, cats_val, cats_test)
 
 
 class CSVData(GenericData):
     def __init__(self, train_path: str, test_path: str, unsup_path: str=None, fillna=0, read_args: dict=None,
-                 label_name: str='Label', cats_name: str='attack_cat', **kwargs):
+                 label_name: str='Label', cats_name: str='attack_cat', dropables: List[str]=None, **kwargs):
+        if dropables is None:
+            dropables = ['flowStartMicroseconds', 'flowEndMicroseconds',
+                         'sourceIPAddress', 'sourceTransportPort',
+                         'destinationIPAddress', 'destinationTransportPort']
         pd_kwargs = read_args if read_args is not None else {}
         # load data
         train = pd.read_csv(train_path, **pd_kwargs).fillna(fillna)
         test = pd.read_csv(test_path, **pd_kwargs).fillna(fillna)
         unsup = None
         if unsup_path is not None:
-            unsup = pd.read_csv(unsup, **pd_kwargs).fillna(fillna)
+            unsup = pd.read_csv(unsup_path, **pd_kwargs).fillna(fillna)
+            x_unsup = unsup.drop(dropables, axis=1).values
 
-        x_train = train.drop([label_name, cats_name], axis=1)
-        x_test = test.drop([label_name, cats_name], axis=1)
-        y_train = train[label_name]
-        y_test = test[label_name]
-        cats_train = train[cats_name]
-        cats_test = test[cats_name]
+        x_train = train.drop([label_name, cats_name, *dropables], axis=1).values
+        x_test = test.drop([label_name, cats_name, *dropables], axis=1).values
+        y_train = train[label_name].values
+        y_test = test[label_name].values
+        cats_train = train[cats_name].values
+        cats_test = test[cats_name].values
 
         super().__init__(x_train, y_train, cats_train,
                          x_test, y_test, cats_test,
-                         unsup, **kwargs)
+                         x_unsup, **kwargs)
 
 
 if __name__ == '__main__':
