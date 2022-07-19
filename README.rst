@@ -58,7 +58,7 @@ The Traffic Flow Mapper (TFM) presents flows taken from the
 `UNSW-NB15 dataset <https://www.unsw.adfa.edu.au/unsw-canberra-cyber/cybersecurity/ADFA-NB15-Datasets/>`_
 in a 2D plot.
 
-.. image:: https://cn.tuwien.ac.at/assets/projects/tfm/tfm-screen.png
+.. image:: assets/tfm-screen.png
 
 Running with Docker
 ~~~~~~~~~~~~~~~~~~~
